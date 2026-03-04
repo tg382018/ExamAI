@@ -1,0 +1,99 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+class ApiService {
+  final Dio _dio = Dio(BaseOptions(
+    baseUrl: 'http://localhost:3000', // Update with actual IP for physical devices
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 10),
+  ));
+
+  final _storage = const FlutterSecureStorage();
+
+  ApiService() {
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        final token = await _storage.read(key: 'token');
+        if (token != null) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+        return handler.next(options);
+      },
+      onError: (e, handler) {
+        if (e.response?.statusCode == 401) {
+          // Handle logic to logout or clear token
+        }
+        return handler.next(e);
+      },
+    ));
+  }
+
+  // Auth
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    final res = await _dio.post('/auth/login', data: {'email': email, 'password': password});
+    await _storage.write(key: 'token', value: res.data['token']);
+    return res.data;
+  }
+
+  Future<Map<String, dynamic>> register(String email, String password, String name) async {
+    final res = await _dio.post('/auth/register', data: {
+      'email': email,
+      'password': password,
+      'name': name,
+    });
+    await _storage.write(key: 'token', value: res.data['token']);
+    return res.data;
+  }
+
+  // Exams
+  Future<Map<String, dynamic>> getDraftPlan(String prompt) async {
+    final res = await _dio.post('/exam/draft', data: {'prompt': prompt});
+    return res.data['suggested'];
+  }
+
+  Future<String> confirmExam(Map<String, dynamic> plan, String prompt) async {
+    final res = await _dio.post('/exam', data: {
+      ...plan,
+      'prompt': prompt,
+    });
+    return res.data['examId'];
+  }
+
+  Future<List<dynamic>> getExams() async {
+    final res = await _dio.get('/exams');
+    return res.data;
+  }
+
+  Future<Map<String, dynamic>> getExamDetail(String id) async {
+    final res = await _dio.get('/exams/$id');
+    return res.data;
+  }
+
+  Future<Map<String, dynamic>> submitAttempt(String examId, List<Map<String, dynamic>> answers, DateTime startedAt) async {
+    final res = await _dio.post('/exams/$examId/attempts', data: {
+      'answers': answers,
+      'startedAt': startedAt.toIso8601String(),
+    });
+    return res.data;
+  }
+
+  Future<Map<String, dynamic>> getAttempt(String attemptId) async {
+    final res = await _dio.get('/exams/attempts/$attemptId');
+    return res.data;
+  }
+
+  Future<List<dynamic>> getSolutions(String examId) async {
+    final res = await _dio.get('/exams/$examId/solutions');
+    return res.data;
+  }
+
+  Future<String> getSummary(String examId) async {
+    final res = await _dio.get('/exams/$examId/summary');
+    return res.data['summary'];
+  }
+
+  // Devices
+  Future<void> registerDeviceToken(String token, String platform) async {
+    await _dio.post('/device-token', data: {'token': token, 'platform': platform});
+  }
+}
