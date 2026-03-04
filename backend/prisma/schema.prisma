@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ExamStatus {
+  QUEUED
+  GENERATING
+  READY
+  FAILED
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime      @default(now())
+  exams        Exam[]
+  attempts     Attempt[]
+  deviceTokens DeviceToken[]
+}
+
+model Exam {
+  id            String     @id @default(uuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id])
+  title         String
+  prompt        String
+  status        ExamStatus @default(QUEUED)
+  durationMin   Int
+  questionCount Int
+  difficulty    String     @default("mixed")
+  aiSummary     String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  questions     Question[]
+  attempts      Attempt[]
+}
+
+model Question {
+  id            String  @id @default(uuid())
+  examId        String
+  exam          Exam    @relation(fields: [examId], references: [id])
+  orderIndex    Int
+  text          String
+  options       Json    // ["A) ...", "B) ...", "C) ...", "D) ...", "E) ..."]
+  correctOption Int     // 0-based index
+  explanation   String
+  difficulty    String  @default("medium")
+  topicTag      String  @default("")
+}
+
+model Attempt {
+  id           String   @id @default(uuid())
+  examId       String
+  exam         Exam     @relation(fields: [examId], references: [id])
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  answers      Json     // [{ questionId: string, selectedOption: number | null }]
+  score        Float?
+  correctCount Int?
+  wrongCount   Int?
+  emptyCount   Int?
+  startedAt    DateTime @default(now())
+  finishedAt   DateTime?
+}
+
+model DeviceToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  platform  String   // "ios" | "android"
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
