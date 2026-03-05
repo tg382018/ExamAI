@@ -41,7 +41,7 @@ ios/Flutter/Flutter.podspec
 ios/Flutter/App.framework
 ios/Flutter/App.podspec
 ios/Flutter/App.framework.dSYM
-android/app/google-services.json
-ios/Runner/GoogleService-Info.plist
+examai_flutter/android/app/google-services.json
+examai_flutter/ios/Runner/GoogleService-Info.plist
 *.lock
 *.log
