@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "627946463483",
+    "project_id": "examai-5cec1",
+    "storage_bucket": "examai-5cec1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:627946463483:android:5f68593089dfad1b8e105e",
+        "android_client_info": {
+          "package_name": "com.example.examai_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-yhxjT0q0mgRzXFqC596JUTbJLyhrR-Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
