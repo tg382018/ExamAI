@@ -32,7 +32,8 @@ class _MyExamsScreenState extends ConsumerState<MyExamsScreen> {
   void _startPolling() {
     _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       final exams = ref.read(examsProvider);
-      final hasPending = exams.any((e) => e.status == ExamStatus.QUEUED || e.status == ExamStatus.GENERATING);
+      final hasPending = exams.any((e) =>
+          e.status == ExamStatus.QUEUED || e.status == ExamStatus.GENERATING);
       if (hasPending) {
         ref.read(examsProvider.notifier).fetchExams();
       }
@@ -56,11 +57,13 @@ class _MyExamsScreenState extends ConsumerState<MyExamsScreen> {
       body: exams.isEmpty
           ? Center(
               child: Column(
-                mainAxisAlignment: Main_axisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.note_alt_outlined, size: 64, color: Colors.white24),
+                  const Icon(Icons.note_alt_outlined,
+                      size: 64, color: Colors.white24),
                   const SizedBox(height: 16),
-                  const Text('Henüz hiç sınavın yok.', style: TextStyle(color: Colors.white60)),
+                  const Text('Henüz hiç sınavın yok.',
+                      style: TextStyle(color: Colors.white60)),
                   TextButton(
                     onPressed: () => context.push('/my-exams/create'),
                     child: const Text('İlk Sınavını Oluştur'),
@@ -107,13 +110,15 @@ class _ExamCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: Main_axisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Text(
                       exam.title,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: exam.status == ExamStatus.READY ? Colors.white : Colors.white54,
+                            color: exam.status == ExamStatus.READY
+                                ? Colors.white
+                                : Colors.white54,
                           ),
                     ),
                   ),
@@ -123,14 +128,16 @@ class _ExamCard extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 14, color: Colors.white38),
+                  const Icon(Icons.calendar_today,
+                      size: 14, color: Colors.white38),
                   const SizedBox(width: 4),
                   Text(
                     DateFormat('dd.MM.yyyy HH:mm').format(exam.createdAt),
                     style: const TextStyle(color: Colors.white38, fontSize: 12),
                   ),
                   const SizedBox(width: 16),
-                  const Icon(Icons.question_answer, size: 14, color: Colors.white38),
+                  const Icon(Icons.question_answer,
+                      size: 14, color: Colors.white38),
                   const SizedBox(width: 4),
                   Text(
                     '${exam.questionCount} Soru',
@@ -141,15 +148,18 @@ class _ExamCard extends StatelessWidget {
               if (exam.lastScore != null) ...[
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
-                    mainAxisSize: Main_axisAlignment.min,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('Son Skor: ', style: TextStyle(color: Colors.white60, fontSize: 13)),
+                      const Text('Son Skor: ',
+                          style:
+                              TextStyle(color: Colors.white60, fontSize: 13)),
                       Text(
                         '%${exam.lastScore}',
                         style: TextStyle(
@@ -204,12 +214,12 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
-        mainAxisSize: Main_axisAlignment.min,
+        mainAxisSize: MainAxisSize.min,
         children: [
           if (loading) ...[
             SizedBox(
@@ -219,7 +229,9 @@ class _StatusChip extends StatelessWidget {
             ),
             const SizedBox(width: 6),
           ],
-          Text(text, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(text,
+              style: TextStyle(
+                  color: color, fontSize: 12, fontWeight: FontWeight.bold)),
         ],
       ),
     );

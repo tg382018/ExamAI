@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/providers.dart';
@@ -33,17 +32,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: ':id',
-            builder: (context, state) => ExamDetailScreen(id: state.pathParameters['id']!),
+            builder: (context, state) =>
+                ExamDetailScreen(id: state.pathParameters['id']!),
           ),
           GoRoute(
             path: 'score/:attemptId',
-            builder: (context, state) => ScoreScreen(attemptId: state.pathParameters['attemptId']!),
+            builder: (context, state) =>
+                ScoreScreen(attemptId: state.pathParameters['attemptId']!),
           ),
         ],
       ),
     ],
     redirect: (context, state) {
-      final isLoggingIn = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+      final isLoggingIn = state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register';
       if (authState == null) return isLoggingIn ? null : '/login';
       if (isLoggingIn) return '/my-exams';
       return null;

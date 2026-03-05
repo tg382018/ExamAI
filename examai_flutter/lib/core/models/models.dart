@@ -1,5 +1,3 @@
-import 'package:json_annotation/json_annotation.dart';
-
 enum ExamStatus { QUEUED, GENERATING, READY, FAILED }
 
 class Exam {

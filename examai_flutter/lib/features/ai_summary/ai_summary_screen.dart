@@ -32,7 +32,8 @@ class AISummaryScreen extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.auto_awesome, color: Colors.amber, size: 24),
+                    const Icon(Icons.auto_awesome,
+                        color: Colors.amber, size: 24),
                     const SizedBox(width: 12),
                     Text(
                       'Senin İçin Hazırlandı',
@@ -46,18 +47,27 @@ class AISummaryScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
                 MarkdownBody(
                   data: summary,
-                  styleConfig: MarkdownStyleSheet(
-                    p: const TextStyle(fontSize: 16, height: 1.6, color: Colors.white70),
-                    h1: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-                    h2: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                    listBullet: const TextStyle(fontSize: 16, color: Colors.white70),
+                  styleSheet: MarkdownStyleSheet(
+                    p: const TextStyle(
+                        fontSize: 16, height: 1.6, color: Colors.white70),
+                    h1: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
+                    h2: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
+                    listBullet:
+                        const TextStyle(fontSize: 16, color: Colors.white70),
                   ),
                 ),
                 const SizedBox(height: 40),
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    color:
+                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Row(

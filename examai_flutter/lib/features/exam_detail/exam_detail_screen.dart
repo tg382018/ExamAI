@@ -223,7 +223,7 @@ class _QuestionView extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isSelected ? Theme.of(context).colorScheme.primary.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+                    color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,

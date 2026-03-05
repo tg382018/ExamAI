@@ -47,13 +47,17 @@ class ScoreScreen extends ConsumerWidget {
                   lineWidth: 12.0,
                   percent: score / 100,
                   center: Column(
-                    mainAxisAlignment: Main_axisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         '%${score.toInt()}',
-                        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
                       ),
-                      const Text('Başarı', style: TextStyle(color: Colors.white60)),
+                      const Text('Başarı',
+                          style: TextStyle(color: Colors.white60)),
                     ],
                   ),
                   circularStrokeCap: CircularStrokeCap.round,
@@ -64,21 +68,33 @@ class ScoreScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 40),
                 Row(
-                  mainAxisAlignment: Main_axisAlignment.spaceEvenly,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _ResultStat(label: 'Doğru', value: '${attempt.correctCount}', color: Colors.green),
-                    _ResultStat(label: 'Yanlış', value: '${attempt.wrongCount}', color: Colors.red),
-                    _ResultStat(label: 'Boş', value: '${attempt.emptyCount}', color: Colors.orange),
+                    _ResultStat(
+                        label: 'Doğru',
+                        value: '${attempt.correctCount}',
+                        color: Colors.green),
+                    _ResultStat(
+                        label: 'Yanlış',
+                        value: '${attempt.wrongCount}',
+                        color: Colors.red),
+                    _ResultStat(
+                        label: 'Boş',
+                        value: '${attempt.emptyCount}',
+                        color: Colors.orange),
                   ],
                 ),
                 const SizedBox(height: 48),
                 _ActionCard(
                   icon: Icons.lightbulb_outline,
                   title: 'Çözümleri Gör',
-                  subtitle: 'Soruların doğru cevaplarını ve çözümlerini incele.',
+                  subtitle:
+                      'Soruların doğru cevaplarını ve çözümlerini incele.',
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => SolutionsScreen(examId: attempt.examId)),
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            SolutionsScreen(examId: attempt.examId)),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -88,7 +104,9 @@ class ScoreScreen extends ConsumerWidget {
                   subtitle: 'Yapay zeka senin için sınav konularını özetledi.',
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => AISummaryScreen(examId: attempt.examId)),
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            AISummaryScreen(examId: attempt.examId)),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -115,15 +133,19 @@ class _ResultStat extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-  const _ResultStat({required this.label, required this.value, required this.color});
+  const _ResultStat(
+      {required this.label, required this.value, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+        Text(value,
+            style: TextStyle(
+                fontSize: 24, fontWeight: FontWeight.bold, color: color)),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(color: Colors.white60, fontSize: 14)),
+        Text(label,
+            style: const TextStyle(color: Colors.white60, fontSize: 14)),
       ],
     );
   }
@@ -155,7 +177,7 @@ class _ActionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: Theme.of(context).colorScheme.primary),
@@ -165,9 +187,13 @@ class _ActionCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(title,
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    Text(subtitle, style: const TextStyle(fontSize: 13, color: Colors.white60)),
+                    Text(subtitle,
+                        style: const TextStyle(
+                            fontSize: 13, color: Colors.white60)),
                   ],
                 ),
               ),
@@ -177,12 +203,5 @@ class _ActionCard extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-// Note: I missed adding getExamDetailByAttempt to ApiService. I will add it now.
-extension ApiServiceExtension on ApiService {
-  Future<Map<String, dynamic>> getExamDetailByAttempt(String attemptId) async {
-    final res = await _dio.get('/exams/attempts/$attemptId');
-    return res.data;
   }
 }

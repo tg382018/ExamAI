@@ -69,7 +69,7 @@ class _SolutionCardState extends State<_SolutionCard> {
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
@@ -107,9 +107,9 @@ class _SolutionCardState extends State<_SolutionCard> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.withOpacity(0.2)),
+                    border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     children: [

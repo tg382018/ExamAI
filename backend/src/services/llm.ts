@@ -15,7 +15,7 @@ export interface DraftPlan {
  */
 export async function generateDraftPlan(prompt: string): Promise<DraftPlan> {
     const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: process.env.OPENAI_MODEL || 'gpt-4o',
         temperature: 0.5,
         messages: [
             {
@@ -61,7 +61,7 @@ export async function generateFullExam(
 ): Promise<{ questions: GeneratedQuestion[]; summary: string }> {
     // Step 1: Generate questions with answer key + explanations (combined for efficiency)
     const questionsCompletion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: process.env.OPENAI_MODEL || 'gpt-4o',
         temperature: 0.7,
         messages: [
             {
@@ -101,7 +101,7 @@ Zorluk: ${plan.difficulty}`,
 
     // Step 2: Generate AI summary
     const summaryCompletion = await openai.chat.completions.create({
-        model: 'gpt-4o',
+        model: process.env.OPENAI_MODEL || 'gpt-4o',
         temperature: 0.6,
         messages: [
             {

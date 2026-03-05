@@ -16,17 +16,19 @@ class AppTheme {
         primary: primaryColor,
         secondary: secondaryColor,
         surface: surfaceColor,
-        background: backgroundColor,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
-        onBackground: Color(0xFFE2E8F0),
         onSurface: Color(0xFFE2E8F0),
       ),
       scaffoldBackgroundColor: backgroundColor,
-      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).copyWith(
-        displayLarge: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
-        displayMedium: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
-        titleLarge: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: Colors.white),
+      textTheme:
+          GoogleFonts.interTextTheme(ThemeData.dark().textTheme).copyWith(
+        displayLarge: GoogleFonts.outfit(
+            fontWeight: FontWeight.bold, color: Colors.white),
+        displayMedium: GoogleFonts.outfit(
+            fontWeight: FontWeight.bold, color: Colors.white),
+        titleLarge: GoogleFonts.outfit(
+            fontWeight: FontWeight.w600, color: Colors.white),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: backgroundColor,
@@ -38,19 +40,27 @@ class AppTheme {
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 16),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle:
+              GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 16),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceColor,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: primaryColor, width: 2)),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: primaryColor, width: 2)),
         hintStyle: const TextStyle(color: Color(0xFF64748B)),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: surfaceColor,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
