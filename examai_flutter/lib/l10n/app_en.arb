@@ -1,0 +1,83 @@
+{
+  "@@locale": "en",
+  "onboardingTitle1": "Push Your Limits with AI",
+  "onboardingDesc1": "ExamAI analyzes your learning style and creates a personalized study plan. Pinpoint your weaknesses.",
+  "onboardingTitle2": "Design Your Future Today",
+  "onboardingDesc2": "Thousands of questions, instant analysis, and peer comparisons. The shortest path to success is now in your pocket.",
+  "onboardingNext": "Continue",
+  "onboardingStart": "Sign Up for Free",
+  "onboardingLoginLink": "Already have an account? Log In",
+  "loginTitle": "Create your exams instantly with AI.",
+  "loginEmail": "Email Address",
+  "loginPassword": "Password",
+  "loginButton": "Log In",
+  "loginNoAccount": "Don't have an account? Sign Up",
+  "loginErrorEmpty": "Please enter your email and password.",
+  "loginErrorInvalid": "Invalid email or password",
+  "loginErrorUnverified": "Email not verified",
+  "loginVerifyAction": "Verify",
+  "loginGenericError": "Login failed. Please try again.",
+  "registerTitle": "Sign Up",
+  "registerSubtitle": "Start discovering your potential with ExamAI.",
+  "registerName": "Full Name",
+  "registerEmail": "Email Address",
+  "registerPassword": "Password",
+  "registerConfirmPassword": "Confirm Password",
+  "registerTermsPrefix": "I have read and agree to the ",
+  "registerTermsLink": "Terms of Service",
+  "registerAnd": " and ",
+  "registerPrivacyLink": "Privacy Policy",
+  "registerTermsSuffix": ".",
+  "termsTitle": "Terms of Service",
+  "termsContent": "Welcome to ExamAI! By using our platform, you agree to these terms.\n\n1. Acceptance of Terms: By accessing or using ExamAI, you agree to be bound by these terms.\n2. User Accounts: You are responsible for maintaining the confidentiality of your account information.\n3. Content Accuracy: AI-generated content is for educational purposes. Users should verify critical information.\n4. Prohibited Conduct: You agree not to misuse the platform or engage in any illegal activities.\n5. Modifications: We reserve the right to update these terms at any time.",
+  "privacyTitle": "Privacy Policy",
+  "privacyContent": "At ExamAI, we take your privacy seriously.\n\n1. Information Collection: We collect your name and email to provide and improve our services.\n2. Data Usage: Your data is used for authentication and personalizing your exam experience.\n3. Data Security: We implement advanced security measures to protect your information.\n4. Third Parties: We do not sell or share your personal data with third parties for marketing purposes.\n5. Your Rights: You can request access to or deletion of your data at any time.",
+  "registerButton": "Sign Up",
+  "registerHaveAccount": "Already have an account? Log In",
+  "registerErrorName": "Please enter your name.",
+  "registerErrorEmail": "Enter a valid email address.",
+  "registerErrorPassword": "Password must be at least 6 characters.",
+  "registerErrorMatch": "Passwords do not match.",
+  "registerErrorTerms": "Please accept the terms of use.",
+  "registerErrorConflict": "This email is already registered",
+  "registerGenericError": "An error occurred during registration.",
+  "verifyTitle": "Email Verification",
+  "verifyDesc": "We sent a verification code to {email}. Please enter the code below.",
+  "@verifyDesc": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "verifyButton": "Verify",
+  "verifyResend": "Send New Code",
+  "verifyWait": "Wait {seconds} seconds",
+  "@verifyWait": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "verifyErrorInvalid": "Incorrect code",
+  "verifySuccess": "Email verified successfully",
+  "verifyGenericError": "An error occurred during verification.",
+  "myExamsTitle": "My Exams",
+  "myExamsCreate": "New Exam",
+  "myExamsEmpty": "You don't have any exams yet.",
+  "statusQueued": "Queued",
+  "statusGenerating": "Generating",
+  "statusReady": "Ready",
+  "statusFailed": "Failed",
+  "examQuestionCount": "{count} Questions",
+  "@examQuestionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "examLastScore": "Last Score: ",
+  "commonClose": "Close"
+}

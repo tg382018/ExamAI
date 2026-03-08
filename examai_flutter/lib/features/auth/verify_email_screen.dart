@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/providers/providers.dart';
 
 class VerifyEmailScreen extends ConsumerStatefulWidget {
@@ -18,7 +18,6 @@ class VerifyEmailScreen extends ConsumerStatefulWidget {
 class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
     with SingleTickerProviderStateMixin {
   final _codeController = TextEditingController();
-  bool _loading = false;
   late AnimationController _animationController;
   Timer? _resendTimer;
   int _secondsRemaining = 120; // 2 minutes
@@ -54,53 +53,36 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
   }
 
   void _verify() async {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_codeController.text.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen 6 haneli kodu girin.')),
+        SnackBar(content: Text(l10n.verifyErrorInvalid)),
       );
       return;
     }
 
-    setState(() => _loading = true);
-    try {
-      await ref
-          .read(authProvider.notifier)
-          .verify(widget.email, _codeController.text);
-      if (mounted) context.go('/my-exams');
-    } catch (e) {
+    final success = await ref
+        .read(authProvider.notifier)
+        .verify(widget.email, _codeController.text);
+
+    if (success) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e')),
+          SnackBar(content: Text(l10n.verifySuccess)),
         );
+        context.go('/my-exams');
       }
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  void _resend() async {
-    if (_secondsRemaining > 0) return;
-
-    try {
-      await ref.read(authProvider.notifier).resendCode(widget.email);
-      _startTimer();
+    } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Yeni kod gönderildi.')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        String errorMessage = 'Bir hata oluştu. Lütfen tekrar deneyin.';
+        final error = ref.read(authProvider).error;
+        String errorMessage = l10n.verifyErrorInvalid;
 
-        if (e is DioException) {
-          final data = e.response?.data;
-          if (data is Map && data.containsKey('error')) {
-            errorMessage = data['error'];
-            // Özel olarak "Geçersiz doğrulama kodu" gelirse daha kısa yapalım
-            if (errorMessage == 'Geçersiz doğrulama kodu') {
-              errorMessage = 'Kod yanlış';
-            }
+        if (error != null) {
+          if (error.contains('Geçersiz doğrulama kodu')) {
+            errorMessage = l10n.verifyErrorInvalid;
+          } else {
+            errorMessage = error;
           }
         }
 
@@ -114,8 +96,36 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
     }
   }
 
+  void _resend() async {
+    final l10n = AppLocalizations.of(context)!;
+    if (_secondsRemaining > 0) return;
+
+    final success =
+        await ref.read(authProvider.notifier).resendCode(widget.email);
+
+    if (success) {
+      _startTimer();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.verifyResend)),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.verifyGenericError),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFF09090B),
       body: Stack(
@@ -136,7 +146,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
                   const SizedBox(height: 30),
                   _VerifyForm(
                     codeController: _codeController,
-                    loading: _loading,
+                    loading: authState.isLoading,
                     onSubmit: _verify,
                     onResend: _resend,
                     secondsRemaining: _secondsRemaining,
@@ -165,8 +175,8 @@ class _BackgroundBlobs extends StatelessWidget {
             Positioned(
               top: -100 + (30 * animation.value),
               left: -50 + (20 * animation.value),
-              child: _Blob(
-                color: const Color(0xFF10B981), // Emerald
+              child: const _Blob(
+                color: Color(0xFF10B981), // Emerald
                 size: 300,
                 opacity: 0.4,
               ),
@@ -174,8 +184,8 @@ class _BackgroundBlobs extends StatelessWidget {
             Positioned(
               bottom: -50 - (30 * animation.value),
               right: -50 - (20 * animation.value),
-              child: _Blob(
-                color: const Color(0xFF3B82F6), // Blue
+              child: const _Blob(
+                color: Color(0xFF3B82F6), // Blue
                 size: 250,
                 opacity: 0.4,
               ),
@@ -203,7 +213,7 @@ class _Blob extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(opacity),
+            color: color.withValues(alpha: opacity),
             blurRadius: 100,
             spreadRadius: 40,
           ),
@@ -225,9 +235,9 @@ class _BackButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         ),
         child:
             const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 24),
@@ -242,6 +252,8 @@ class _HeaderSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Column(
       children: [
         ShaderMask(
@@ -249,7 +261,7 @@ class _HeaderSection extends StatelessWidget {
             colors: [Colors.white, Color(0xFFA7F3D0)],
           ).createShader(bounds),
           child: Text(
-            'E-posta Doğrulama',
+            l10n.verifyTitle,
             style: GoogleFonts.outfit(
               fontSize: 32,
               fontWeight: FontWeight.bold,
@@ -259,7 +271,7 @@ class _HeaderSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          '$email adresine gönderdiğimiz 6 haneli kodu girin.',
+          l10n.verifyDesc(email),
           textAlign: TextAlign.center,
           style: GoogleFonts.outfit(
             fontSize: 15,
@@ -288,6 +300,8 @@ class _VerifyForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(30),
       child: BackdropFilter(
@@ -295,9 +309,9 @@ class _VerifyForm extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(30),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
+            color: Colors.white.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
           ),
           child: Column(
             children: [
@@ -314,14 +328,15 @@ class _VerifyForm extends StatelessWidget {
                 ),
                 decoration: InputDecoration(
                   hintText: '000000',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.1)),
+                  hintStyle:
+                      TextStyle(color: Colors.white.withValues(alpha: 0.1)),
                   counterText: '',
                   filled: true,
-                  fillColor: const Color(0xFF0F172A).withOpacity(0.6),
+                  fillColor: const Color(0xFF0F172A).withValues(alpha: 0.6),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide:
-                        BorderSide(color: Colors.white.withOpacity(0.1)),
+                        BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                   ),
                 ),
               ),
@@ -332,8 +347,8 @@ class _VerifyForm extends StatelessWidget {
                 onPressed: secondsRemaining == 0 ? onResend : null,
                 child: Text(
                   secondsRemaining == 0
-                      ? 'Kodu tekrar gönder'
-                      : 'Tekrar gönder (${(secondsRemaining ~/ 60).toString().padLeft(2, '0')}:${(secondsRemaining % 60).toString().padLeft(2, '0')})',
+                      ? l10n.verifyResend
+                      : l10n.verifyWait(secondsRemaining),
                   style: GoogleFonts.outfit(
                     color: secondsRemaining == 0
                         ? const Color(0xFF10B981)
@@ -358,6 +373,8 @@ class _VerifyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return InkWell(
       onTap: loading ? null : onTap,
       borderRadius: BorderRadius.circular(16),
@@ -371,7 +388,7 @@ class _VerifyButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF10B981).withOpacity(0.4),
+              color: const Color(0xFF10B981).withValues(alpha: 0.4),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -386,7 +403,7 @@ class _VerifyButton extends StatelessWidget {
                       color: Colors.white, strokeWidth: 2),
                 )
               : Text(
-                  'Doğrula',
+                  l10n.verifyButton,
                   style: GoogleFonts.outfit(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,

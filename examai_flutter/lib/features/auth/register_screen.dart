@@ -1,10 +1,12 @@
 import 'dart:ui';
-import 'package:dio/dio.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/providers/providers.dart';
+import '../../shared/widgets/widgets.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -13,24 +15,15 @@ class RegisterScreen extends ConsumerStatefulWidget {
   ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends ConsumerState<RegisterScreen>
-    with SingleTickerProviderStateMixin {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _acceptTerms = false;
-  bool _loading = false;
-  late AnimationController _animationController;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 15),
-    )..repeat(reverse: true);
-  }
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
@@ -38,364 +31,322 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _animationController.dispose();
     super.dispose();
   }
 
-  void _register() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-    final name = _nameController.text.trim();
-
-    if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen adınızı girin.')),
-      );
-      return;
-    }
-
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    if (!emailRegex.hasMatch(email)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Geçerli bir e-posta adresi girin.')),
-      );
-      return;
-    }
-
-    if (password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Şifre en az 6 karakter olmalıdır.')),
-      );
-      return;
-    }
-
-    if (password != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Şifreler uyuşmuyor.')),
-      );
-      return;
-    }
-
-    if (!_acceptTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Lütfen kullanım koşullarını kabul edin.')),
-      );
-      return;
-    }
-
-    setState(() => _loading = true);
-    try {
-      await ref.read(authProvider.notifier).register(
-            email,
-            password,
-            name,
-          );
-      if (mounted) {
-        context.push('/verify-email', extra: email);
-      }
-    } catch (e) {
-      if (mounted) {
-        String errorMessage = 'Kayıt sırasında bir hata oluştu.';
-
-        if (e is DioException) {
-          final data = e.response?.data;
-          if (data is Map && data.containsKey('error')) {
-            errorMessage = data['error'];
-          } else if (e.response?.statusCode == 409) {
-            errorMessage = 'Bu email zaten kayıtlı';
-          }
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.redAccent,
+  void _showPolicyDialog(BuildContext context, String title, String content) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: AlertDialog(
+          backgroundColor: const Color(0xFF1E293B).withValues(alpha: 0.9),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text(
+            title,
+            style: GoogleFonts.outfit(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF09090B),
-      body: Stack(
-        children: [
-          _BackgroundBlobs(animation: _animationController),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: _BackButton(onTap: () => context.pop()),
-                  ),
-                  const SizedBox(height: 40),
-                  _HeaderSection(),
-                  const SizedBox(height: 30),
-                  _RegisterForm(
-                    nameController: _nameController,
-                    emailController: _emailController,
-                    passwordController: _passwordController,
-                    confirmController: _confirmPasswordController,
-                    acceptTerms: _acceptTerms,
-                    onTermsChanged: (val) =>
-                        setState(() => _acceptTerms = val ?? false),
-                    loading: _loading,
-                    onSubmit: _register,
-                  ),
-                  const SizedBox(height: 25),
-                  _LoginLink(onTap: () => context.go('/login')),
-                  const SizedBox(height: 40),
-                ],
+          content: SingleChildScrollView(
+            child: Text(
+              content,
+              style: GoogleFonts.outfit(
+                color: const Color(0xFF94A3B8),
+                fontSize: 14,
+                height: 1.5,
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BackgroundBlobs extends StatelessWidget {
-  final Animation<double> animation;
-  const _BackgroundBlobs({required this.animation});
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, child) {
-        return Stack(
-          children: [
-            Positioned(
-              top: -100 + (40 * animation.value),
-              left: -50 + (20 * animation.value),
-              child: _Blob(
-                color: const Color(0xFF7C3AED),
-                size: 300,
-                opacity: 0.4,
-              ),
-            ),
-            Positioned(
-              bottom: -50 - (40 * animation.value),
-              right: -80 - (20 * animation.value),
-              child: _Blob(
-                color: const Color(0xFF06B6D4),
-                size: 250,
-                opacity: 0.4,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                l10n.commonClose,
+                style: const TextStyle(
+                    color: Color(0xFF2DD4BF), fontWeight: FontWeight.bold),
               ),
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
   }
-}
 
-class _Blob extends StatelessWidget {
-  final Color color;
-  final double size;
-  final double opacity;
+  Future<void> _handleRegister() async {
+    final l10n = AppLocalizations.of(context)!;
+    if (_formKey.currentState?.validate() ?? false) {
+      if (!_acceptTerms) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.registerErrorTerms)),
+        );
+        return;
+      }
 
-  const _Blob({
-    required this.color,
-    required this.size,
-    required this.opacity,
-  });
+      final success = await ref.read(authProvider.notifier).register(
+            _emailController.text.trim(),
+            _passwordController.text,
+            _nameController.text.trim(),
+          );
+
+      if (success) {
+        if (mounted) {
+          context.push('/verify-email', extra: _emailController.text.trim());
+        }
+      } else {
+        if (mounted) {
+          final error = ref.read(authProvider).error;
+          String message = l10n.registerGenericError;
+
+          if (error != null) {
+            if (error.contains('User already exists')) {
+              message = l10n.registerErrorConflict;
+            } else if (error.contains('Email already in use')) {
+              message = l10n.registerErrorConflict;
+            } else {
+              message = error;
+            }
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(opacity),
-            blurRadius: 100,
-            spreadRadius: 40,
+    final authState = ref.watch(authProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Background
+          Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          // Animated Blobs
+          Positioned(
+            top: -100,
+            right: -50,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF2DD4BF).withValues(alpha: 0.1),
+              ),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+          ),
+
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 20),
+                    Text(
+                      l10n.registerTitle,
+                      style: GoogleFonts.outfit(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.registerSubtitle,
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        color: const Color(0xFF94A3B8),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+
+                    // Name Field
+                    CustomTextField(
+                      controller: _nameController,
+                      label: l10n.registerName,
+                      prefixIcon: Icons.person_outline,
+                      validator: (value) => value?.isEmpty ?? true
+                          ? l10n.registerErrorName
+                          : null,
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Email Field
+                    CustomTextField(
+                      controller: _emailController,
+                      label: l10n.registerEmail,
+                      prefixIcon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value?.isEmpty ?? true)
+                          return l10n.registerErrorEmail;
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            .hasMatch(value!)) {
+                          return l10n.registerErrorEmail;
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Password Field
+                    CustomTextField(
+                      controller: _passwordController,
+                      label: l10n.registerPassword,
+                      prefixIcon: Icons.lock_outline,
+                      obscureText: _obscurePassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                        onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword),
+                      ),
+                      validator: (value) {
+                        if (value?.isEmpty ?? true)
+                          return l10n.registerErrorPassword;
+                        if (value!.length < 6)
+                          return l10n.registerErrorPassword;
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Confirm Password Field
+                    CustomTextField(
+                      controller: _confirmPasswordController,
+                      label: l10n.registerConfirmPassword,
+                      prefixIcon: Icons.lock_reset,
+                      obscureText: _obscureConfirmPassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirmPassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                        onPressed: () => setState(() =>
+                            _obscureConfirmPassword = !_obscureConfirmPassword),
+                      ),
+                      validator: (value) {
+                        if (value != _passwordController.text) {
+                          return l10n.registerErrorMatch;
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Terms Checkbox
+                    _TermsCheckbox(
+                      value: _acceptTerms,
+                      onChanged: (val) =>
+                          setState(() => _acceptTerms = val ?? false),
+                      onTermsTap: () => _showPolicyDialog(
+                        context,
+                        l10n.termsTitle,
+                        l10n.termsContent,
+                      ),
+                      onPrivacyTap: () => _showPolicyDialog(
+                        context,
+                        l10n.privacyTitle,
+                        l10n.privacyContent,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Register Button
+                    ElevatedButton(
+                      onPressed: authState.isLoading ? null : _handleRegister,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2DD4BF),
+                        foregroundColor: const Color(0xFF0F172A),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ).copyWith(
+                        backgroundColor:
+                            WidgetStateProperty.resolveWith((states) {
+                          if (states.contains(WidgetState.disabled)) {
+                            return const Color(0xFF2DD4BF)
+                                .withValues(alpha: 0.5);
+                          }
+                          return const Color(0xFF2DD4BF);
+                        }),
+                      ),
+                      child: authState.isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF0F172A),
+                              ),
+                            )
+                          : Text(
+                              l10n.registerButton,
+                              style: GoogleFonts.outfit(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Login Link
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          l10n.registerHaveAccount.split('?').first + '?',
+                          style: GoogleFonts.outfit(
+                            color: const Color(0xFF94A3B8),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => context.go('/login'),
+                          child: Text(
+                            l10n.registerHaveAccount.split('?').last.trim(),
+                            style: GoogleFonts.outfit(
+                              color: const Color(0xFF2DD4BF),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _BackButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _BackButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
-        ),
-        child:
-            const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 24),
-      ),
-    );
-  }
-}
-
-class _HeaderSection extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Image.asset(
-          'assets/images/logo.png',
-          height: 180,
-          fit: BoxFit.contain,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'ExamAI ile potansiyelini keşfetmeye başla.',
-          style: GoogleFonts.outfit(
-            fontSize: 15,
-            color: const Color(0xFF94A3B8),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _RegisterForm extends StatelessWidget {
-  final TextEditingController nameController;
-  final TextEditingController emailController;
-  final TextEditingController passwordController;
-  final TextEditingController confirmController;
-  final bool acceptTerms;
-  final ValueChanged<bool?> onTermsChanged;
-  final bool loading;
-  final VoidCallback onSubmit;
-
-  const _RegisterForm({
-    required this.nameController,
-    required this.emailController,
-    required this.passwordController,
-    required this.confirmController,
-    required this.acceptTerms,
-    required this.onTermsChanged,
-    required this.loading,
-    required this.onSubmit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(30),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
-          ),
-          child: Column(
-            children: [
-              _InputField(
-                controller: nameController,
-                hintText: 'Ad Soyad',
-                icon: Icons.face_outlined,
-              ),
-              const SizedBox(height: 20),
-              _InputField(
-                controller: emailController,
-                hintText: 'E-posta Adresi',
-                icon: Icons.mail_outline,
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 20),
-              _InputField(
-                controller: passwordController,
-                hintText: 'Şifre',
-                icon: Icons.lock_outline,
-                obscureText: true,
-              ),
-              const SizedBox(height: 20),
-              _InputField(
-                controller: confirmController,
-                hintText: 'Şifreyi Onayla',
-                icon: Icons.lock_reset_outlined,
-                obscureText: true,
-              ),
-              const SizedBox(height: 30),
-              _TermsCheckbox(
-                value: acceptTerms,
-                onChanged: onTermsChanged,
-              ),
-              const SizedBox(height: 30),
-              _RegisterButton(
-                onTap: onSubmit,
-                loading: loading,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InputField extends StatelessWidget {
-  final TextEditingController controller;
-  final String hintText;
-  final IconData icon;
-  final bool obscureText;
-  final TextInputType keyboardType;
-
-  const _InputField({
-    required this.controller,
-    required this.hintText,
-    required this.icon,
-    this.obscureText = false,
-    this.keyboardType = TextInputType.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white, fontSize: 15),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: const TextStyle(color: Color(0xFF475569)),
-        prefixIcon: Icon(icon, color: const Color(0xFF94A3B8), size: 20),
-        filled: true,
-        fillColor: const Color(0xFF0F172A).withOpacity(0.6),
-        contentPadding: const EdgeInsets.all(16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFF8B5CF6)),
-        ),
       ),
     );
   }
@@ -404,19 +355,29 @@ class _InputField extends StatelessWidget {
 class _TermsCheckbox extends StatelessWidget {
   final bool value;
   final ValueChanged<bool?> onChanged;
+  final VoidCallback onTermsTap;
+  final VoidCallback onPrivacyTap;
 
-  const _TermsCheckbox({required this.value, required this.onChanged});
+  const _TermsCheckbox({
+    required this.value,
+    required this.onChanged,
+    required this.onTermsTap,
+    required this.onPrivacyTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged(!value),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
+    final l10n = AppLocalizations.of(context)!;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: () => onChanged(!value),
+          child: Container(
             width: 20,
             height: 20,
+            margin: const EdgeInsets.only(top: 2),
             decoration: BoxDecoration(
               color: value ? const Color(0xFF2DD4BF) : Colors.transparent,
               border: Border.all(
@@ -430,109 +391,42 @@ class _TermsCheckbox extends StatelessWidget {
                 ? const Icon(Icons.check, size: 14, color: Color(0xFF0F172A))
                 : null,
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: GoogleFonts.outfit(
-                  fontSize: 13,
-                  color: const Color(0xFF94A3B8),
-                  height: 1.4,
-                ),
-                children: const [
-                  TextSpan(
-                    text: 'Kullanım Koşulları',
-                    style: TextStyle(
-                        color: Color(0xFF2DD4BF), fontWeight: FontWeight.w500),
-                  ),
-                  TextSpan(text: ' ve '),
-                  TextSpan(
-                    text: 'Gizlilik Politikası',
-                    style: TextStyle(
-                        color: Color(0xFF2DD4BF), fontWeight: FontWeight.w500),
-                  ),
-                  TextSpan(text: "\'nı okudum, kabul ediyorum."),
-                ],
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: GoogleFonts.outfit(
+                fontSize: 13,
+                color: const Color(0xFF94A3B8),
+                height: 1.4,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RegisterButton extends StatelessWidget {
-  final VoidCallback onTap;
-  final bool loading;
-
-  const _RegisterButton({required this.onTap, required this.loading});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: loading ? null : onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF8B5CF6), Color(0xFF3B82F6)],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF8B5CF6).withOpacity(0.4),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Center(
-          child: loading
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2),
-                )
-              : Text(
-                  'Kayıt Ol',
-                  style: GoogleFonts.outfit(
-                    fontSize: 16,
+              children: [
+                TextSpan(text: l10n.registerTermsPrefix),
+                TextSpan(
+                  text: l10n.registerTermsLink,
+                  style: const TextStyle(
+                    color: Color(0xFF2DD4BF),
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
                   ),
+                  recognizer: TapGestureRecognizer()..onTap = onTermsTap,
                 ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LoginLink extends StatelessWidget {
-  final VoidCallback onTap;
-  const _LoginLink({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: RichText(
-        text: TextSpan(
-          style:
-              GoogleFonts.outfit(fontSize: 14, color: const Color(0xFF94A3B8)),
-          children: const [
-            TextSpan(text: 'Zaten hesabın var mı?'),
-            TextSpan(
-              text: ' Giriş Yap',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                TextSpan(text: l10n.registerAnd),
+                TextSpan(
+                  text: l10n.registerPrivacyLink,
+                  style: const TextStyle(
+                    color: Color(0xFF2DD4BF),
+                    fontWeight: FontWeight.bold,
+                  ),
+                  recognizer: TapGestureRecognizer()..onTap = onPrivacyTap,
+                ),
+                if (l10n.registerTermsSuffix.isNotEmpty)
+                  TextSpan(text: l10n.registerTermsSuffix),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

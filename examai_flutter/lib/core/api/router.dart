@@ -70,13 +70,13 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // If they have seen onboarding, don't let them go back there
       if (isAtOnboarding) {
-        return authState == null ? '/register' : '/my-exams';
+        return authState.user == null ? '/register' : '/my-exams';
       }
 
       final isAuthPath = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register' ||
           state.matchedLocation == '/verify-email';
-      if (authState == null) return isAuthPath ? null : '/login';
+      if (authState.user == null) return isAuthPath ? null : '/login';
       if (isAuthPath) return '/my-exams';
       return null;
     },

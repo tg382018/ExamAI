@@ -1,9 +1,9 @@
 import 'dart:ui';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/providers/providers.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -17,7 +17,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _loading = false;
   late AnimationController _animationController;
 
   @override
@@ -38,32 +37,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   void _login() async {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen e-posta ve şifrenizi girin.')),
+        SnackBar(content: Text(l10n.loginErrorEmpty)),
       );
       return;
     }
 
-    setState(() => _loading = true);
-    try {
-      await ref.read(authProvider.notifier).login(
-            _emailController.text.trim(),
-            _passwordController.text,
-          );
+    final success = await ref.read(authProvider.notifier).login(
+          _emailController.text.trim(),
+          _passwordController.text,
+        );
+
+    if (success) {
       if (mounted) context.go('/my-exams');
-    } catch (e) {
+    } else {
       if (mounted) {
-        String errorMessage = 'Giriş yapılamadı. Lütfen tekrar deneyin.';
+        final error = ref.read(authProvider).error;
+        String errorMessage = l10n.loginGenericError;
         bool unverified = false;
 
-        if (e is DioException) {
-          final data = e.response?.data;
-          if (data is Map) {
-            errorMessage = data['error'] ?? errorMessage;
-            unverified = data['unverified'] ?? false;
-          } else if (e.response?.statusCode == 401) {
-            errorMessage = 'E-posta veya şifre hatalı';
+        if (error != null) {
+          if (error.contains('Geçersiz email veya şifre')) {
+            errorMessage = l10n.loginErrorInvalid;
+          } else if (error.contains('E-posta doğrulanmamış')) {
+            errorMessage = l10n.loginErrorUnverified;
+            unverified = true;
+          } else {
+            errorMessage = error;
           }
         }
 
@@ -73,7 +76,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             backgroundColor: Colors.redAccent,
             action: unverified
                 ? SnackBarAction(
-                    label: 'Doğrula',
+                    label: l10n.loginVerifyAction,
                     textColor: Colors.white,
                     onPressed: () {
                       context.push('/verify-email',
@@ -84,13 +87,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFF09090B),
       body: Stack(
@@ -103,12 +106,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _HeaderSection(),
+                    const _HeaderSection(),
                     const SizedBox(height: 40),
                     _LoginForm(
                       emailController: _emailController,
                       passwordController: _passwordController,
-                      loading: _loading,
+                      loading: authState.isLoading,
                       onSubmit: _login,
                     ),
                     const SizedBox(height: 25),
@@ -138,8 +141,8 @@ class _BackgroundBlobs extends StatelessWidget {
             Positioned(
               top: -100 + (30 * animation.value),
               left: -50 + (20 * animation.value),
-              child: _Blob(
-                color: const Color(0xFF6366F1), // Indigo
+              child: const _Blob(
+                color: Color(0xFF6366F1), // Indigo
                 size: 300,
                 opacity: 0.4,
               ),
@@ -147,8 +150,8 @@ class _BackgroundBlobs extends StatelessWidget {
             Positioned(
               bottom: -50 - (30 * animation.value),
               right: -50 - (20 * animation.value),
-              child: _Blob(
-                color: const Color(0xFFA855F7), // Purple
+              child: const _Blob(
+                color: Color(0xFFA855F7), // Purple
                 size: 250,
                 opacity: 0.4,
               ),
@@ -180,7 +183,7 @@ class _Blob extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(opacity),
+            color: color.withValues(alpha: opacity),
             blurRadius: 100,
             spreadRadius: 40,
           ),
@@ -191,8 +194,12 @@ class _Blob extends StatelessWidget {
 }
 
 class _HeaderSection extends StatelessWidget {
+  const _HeaderSection();
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Column(
       children: [
         Image.asset(
@@ -202,7 +209,7 @@ class _HeaderSection extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'Yapay Zeka ile sınavlarını anında oluştur.',
+          l10n.loginTitle,
           textAlign: TextAlign.center,
           style: GoogleFonts.outfit(
             fontSize: 16,
@@ -229,6 +236,8 @@ class _LoginForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(30),
       child: BackdropFilter(
@@ -236,22 +245,22 @@ class _LoginForm extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(30),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
+            color: Colors.white.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
           ),
           child: Column(
             children: [
               _InputField(
                 controller: emailController,
-                hintText: 'E-posta Adresi',
+                hintText: l10n.loginEmail,
                 icon: Icons.mail_outline,
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 20),
               _InputField(
                 controller: passwordController,
-                hintText: 'Şifre',
+                hintText: l10n.loginPassword,
                 icon: Icons.lock_outline,
                 obscureText: true,
               ),
@@ -295,15 +304,15 @@ class _InputField extends StatelessWidget {
         hintStyle: const TextStyle(color: Color(0xFF475569)),
         prefixIcon: Icon(icon, color: const Color(0xFF94A3B8), size: 20),
         filled: true,
-        fillColor: const Color(0xFF0F172A).withOpacity(0.6),
+        fillColor: const Color(0xFF0F172A).withValues(alpha: 0.6),
         contentPadding: const EdgeInsets.all(16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -322,6 +331,8 @@ class _LoginButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return InkWell(
       onTap: loading ? null : onTap,
       borderRadius: BorderRadius.circular(16),
@@ -335,7 +346,7 @@ class _LoginButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6366F1).withOpacity(0.4),
+              color: const Color(0xFF6366F1).withValues(alpha: 0.4),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -350,7 +361,7 @@ class _LoginButton extends StatelessWidget {
                       color: Colors.white, strokeWidth: 2),
                 )
               : Text(
-                  'Giriş Yap',
+                  l10n.loginButton,
                   style: GoogleFonts.outfit(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -369,18 +380,23 @@ class _RegisterLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final parts = l10n.loginNoAccount.split('?');
+    final firstPart = parts[0] + '?';
+    final secondPart = parts.length > 1 ? parts[1] : '';
+
     return GestureDetector(
       onTap: onTap,
       child: RichText(
         text: TextSpan(
           style:
               GoogleFonts.outfit(fontSize: 14, color: const Color(0xFF94A3B8)),
-          children: const [
-            TextSpan(text: 'Hesabın yok mu?'),
+          children: [
+            TextSpan(text: firstPart),
             TextSpan(
-              text: ' Kayıt Ol',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              text: secondPart,
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ],
         ),

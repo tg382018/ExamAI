@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/providers.dart';
 
@@ -33,7 +34,7 @@ class _MyExamsScreenState extends ConsumerState<MyExamsScreen> {
     _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       final exams = ref.read(examsProvider);
       final hasPending = exams.any((e) =>
-          e.status == ExamStatus.QUEUED || e.status == ExamStatus.GENERATING);
+          e.status == ExamStatus.queued || e.status == ExamStatus.generating);
       if (hasPending) {
         ref.read(examsProvider.notifier).fetchExams();
       }
@@ -43,10 +44,11 @@ class _MyExamsScreenState extends ConsumerState<MyExamsScreen> {
   @override
   Widget build(BuildContext context) {
     final exams = ref.watch(examsProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sınavlarım'),
+        title: Text(l10n.myExamsTitle),
         actions: [
           IconButton(
             onPressed: () => ref.read(examsProvider.notifier).fetchExams(),
@@ -62,11 +64,11 @@ class _MyExamsScreenState extends ConsumerState<MyExamsScreen> {
                   const Icon(Icons.note_alt_outlined,
                       size: 64, color: Colors.white24),
                   const SizedBox(height: 16),
-                  const Text('Henüz hiç sınavın yok.',
-                      style: TextStyle(color: Colors.white60)),
+                  Text(l10n.myExamsEmpty,
+                      style: const TextStyle(color: Colors.white60)),
                   TextButton(
                     onPressed: () => context.push('/my-exams/create'),
-                    child: const Text('İlk Sınavını Oluştur'),
+                    child: Text(l10n.myExamsCreate),
                   ),
                 ],
               ),
@@ -85,7 +87,7 @@ class _MyExamsScreenState extends ConsumerState<MyExamsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/my-exams/create'),
         icon: const Icon(Icons.add),
-        label: const Text('Yeni Sınav'),
+        label: Text(l10n.myExamsCreate),
       ),
     );
   }
@@ -97,10 +99,12 @@ class _ExamCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: InkWell(
-        onTap: exam.status == ExamStatus.READY
+        onTap: exam.status == ExamStatus.ready
             ? () => context.push('/my-exams/${exam.id}')
             : null,
         borderRadius: BorderRadius.circular(20),
@@ -116,7 +120,7 @@ class _ExamCard extends StatelessWidget {
                     child: Text(
                       exam.title,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: exam.status == ExamStatus.READY
+                            color: exam.status == ExamStatus.ready
                                 ? Colors.white
                                 : Colors.white54,
                           ),
@@ -140,7 +144,7 @@ class _ExamCard extends StatelessWidget {
                       size: 14, color: Colors.white38),
                   const SizedBox(width: 4),
                   Text(
-                    '${exam.questionCount} Soru',
+                    l10n.examQuestionCount(exam.questionCount),
                     style: const TextStyle(color: Colors.white38, fontSize: 12),
                   ),
                 ],
@@ -157,9 +161,10 @@ class _ExamCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('Son Skor: ',
-                          style:
-                              TextStyle(color: Colors.white60, fontSize: 13)),
+                      Text(l10n.examLastScore,
+                          style: const TextStyle(
+                              color: Colors.white60, fontSize: 13)),
+                      const SizedBox(width: 4),
                       Text(
                         '%${exam.lastScore}',
                         style: TextStyle(
@@ -186,28 +191,29 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     Color color;
     String text;
     bool loading = false;
 
     switch (status) {
-      case ExamStatus.QUEUED:
+      case ExamStatus.queued:
         color = Colors.orange;
-        text = 'Sırada';
+        text = l10n.statusQueued;
         loading = true;
         break;
-      case ExamStatus.GENERATING:
+      case ExamStatus.generating:
         color = Colors.blue;
-        text = 'Hazırlanıyor';
+        text = l10n.statusGenerating;
         loading = true;
         break;
-      case ExamStatus.READY:
+      case ExamStatus.ready:
         color = Colors.green;
-        text = 'Hazır';
+        text = l10n.statusReady;
         break;
-      case ExamStatus.FAILED:
+      case ExamStatus.failed:
         color = Colors.red;
-        text = 'Hata';
+        text = l10n.statusFailed;
         break;
     }
 

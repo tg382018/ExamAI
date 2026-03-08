@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/providers/providers.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -59,6 +60,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: const Color(0xFF09090B),
       body: Stack(
@@ -72,9 +75,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                 const SizedBox(height: 20),
                 Image.asset(
                   'assets/images/logo.png',
-                  height: 80, // Reduced from 120
+                  height: 80,
                   fit: BoxFit.contain,
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   colorBlendMode: BlendMode.modulate,
                 ),
                 Expanded(
@@ -82,19 +85,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                     controller: _pageController,
                     onPageChanged: (page) =>
                         setState(() => _currentPage = page),
-                    children: const [
+                    children: [
                       _OnboardingSlide(
-                        title: 'Yapay Zeka ile\nLimitlerini Aş',
-                        description:
-                            'ExamAI, öğrenme stilini analiz eder ve sana özel çalışma programı oluşturur. Eksiklerini nokta atışı tespit et.',
+                        title: l10n.onboardingTitle1,
+                        description: l10n.onboardingDesc1,
                         imageUrl:
                             'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1000&auto=format&fit=crop',
                         isFirst: true,
                       ),
                       _OnboardingSlide(
-                        title: 'Geleceğini\nBugünden Tasarla',
-                        description:
-                            'Binlerce soru, anlık analiz ve rakip karşılaştırmaları. Başarıya giden en kısa yol artık cebinde.',
+                        title: l10n.onboardingTitle2,
+                        description: l10n.onboardingDesc2,
                         imageUrl:
                             'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?q=80&w=1000&auto=format&fit=crop',
                         isFirst: false,
@@ -105,8 +106,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
                 // Pagination and Button Container
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 20), // Reduced from 40
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -120,9 +121,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                       TextButton(
                         onPressed: _onLogin,
                         child: Text(
-                          'Zaten hesabın var mı? Giriş Yap',
+                          l10n.onboardingLoginLink,
                           style: GoogleFonts.outfit(
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.white.withValues(alpha: 0.7),
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),
@@ -154,8 +155,8 @@ class _BackgroundBlobs extends StatelessWidget {
             Positioned(
               top: -100 + (20 * animation.value),
               left: -100 + (30 * animation.value),
-              child: _Blob(
-                color: const Color(0xFF7C3AED),
+              child: const _Blob(
+                color: Color(0xFF7C3AED),
                 size: 300,
                 opacity: 0.4,
               ),
@@ -163,8 +164,8 @@ class _BackgroundBlobs extends StatelessWidget {
             Positioned(
               bottom: -50 - (20 * animation.value),
               right: -50 - (30 * animation.value),
-              child: _Blob(
-                color: const Color(0xFF2563EB),
+              child: const _Blob(
+                color: Color(0xFF2563EB),
                 size: 250,
                 opacity: 0.4,
               ),
@@ -172,8 +173,8 @@ class _BackgroundBlobs extends StatelessWidget {
             Positioned(
               top: MediaQuery.of(context).size.height * 0.4,
               left: MediaQuery.of(context).size.width * 0.3,
-              child: _Blob(
-                color: const Color(0xFFDB2777),
+              child: const _Blob(
+                color: Color(0xFFDB2777),
                 size: 200,
                 opacity: 0.3,
               ),
@@ -205,7 +206,7 @@ class _Blob extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(opacity),
+            color: color.withValues(alpha: opacity),
             blurRadius: 100,
             spreadRadius: 40,
           ),
@@ -240,15 +241,15 @@ class _OnboardingSlide extends StatelessWidget {
             Transform.rotate(
               angle: isFirst ? -0.08 : 0.08,
               child: Container(
-                height: 220, // Reduced from 280
-                width: 220, // Reduced from 280
+                height: 220,
+                width: 220,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                      color: Colors.white.withOpacity(0.1), width: 2),
+                      color: Colors.white.withValues(alpha: 0.1), width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       blurRadius: 35,
                       offset: const Offset(0, 15),
                     ),
@@ -316,10 +317,10 @@ class _GlassCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(30),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(32),
             border: Border.all(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               width: 1,
             ),
           ),
@@ -347,7 +348,7 @@ class _PaginationDots extends StatelessWidget {
           decoration: BoxDecoration(
             color: currentPage == index
                 ? Colors.white
-                : Colors.white.withOpacity(0.2),
+                : Colors.white.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(10),
           ),
         ),
@@ -367,14 +368,18 @@ class _OnboardingButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final gradient = isLast
-        ? const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF3B82F6)])
-        : const LinearGradient(colors: [Color(0xFF6366F1), Color(0xFFA855F7)]);
+    final l10n = AppLocalizations.of(context)!;
 
-    final label = isLast ? 'Ücretsiz Kayıt Ol' : 'Devam Et';
+    const gradientStart = [Color(0xFF6366F1), Color(0xFFA855F7)];
+    const gradientEnd = [Color(0xFF10B981), Color(0xFF3B82F6)];
+
+    final gradient =
+        LinearGradient(colors: isLast ? gradientEnd : gradientStart);
+
+    final label = isLast ? l10n.onboardingStart : l10n.onboardingNext;
     final shadowColor = isLast
-        ? const Color(0xFF10B981).withOpacity(0.4)
-        : const Color(0xFF7C3AED).withOpacity(0.4);
+        ? const Color(0xFF10B981).withValues(alpha: 0.4)
+        : const Color(0xFF7C3AED).withValues(alpha: 0.4);
 
     return InkWell(
       onTap: onTap,

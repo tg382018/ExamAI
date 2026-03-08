@@ -1,0 +1,83 @@
+{
+  "@@locale": "tr",
+  "onboardingTitle1": "Yapay Zeka ile Limitlerini Aş",
+  "onboardingDesc1": "ExamAI, öğrenme stilini analiz eder ve sana özel çalışma programı oluşturur. Eksiklerini nokta atışı tespit et.",
+  "onboardingTitle2": "Geleceğini Bugünden Tasarla",
+  "onboardingDesc2": "Binlerce soru, anlık analiz ve rakip karşılaştırmaları. Başarıya giden en kısa yol artık cebinde.",
+  "onboardingNext": "Devam Et",
+  "onboardingStart": "Ücretsiz Kayıt Ol",
+  "onboardingLoginLink": "Zaten hesabın var mı? Giriş Yap",
+  "loginTitle": "Yapay Zeka ile sınavlarını anında oluştur.",
+  "loginEmail": "E-posta Adresi",
+  "loginPassword": "Şifre",
+  "loginButton": "Giriş Yap",
+  "loginNoAccount": "Hesabın yok mu? Kayıt Ol",
+  "loginErrorEmpty": "Lütfen e-posta ve şifrenizi girin.",
+  "loginErrorInvalid": "E-posta veya şifre hatalı",
+  "loginErrorUnverified": "E-posta doğrulanmamış",
+  "loginVerifyAction": "Doğrula",
+  "loginGenericError": "Giriş yapılamadı. Lütfen tekrar deneyin.",
+  "registerTitle": "Kayıt Ol",
+  "registerSubtitle": "ExamAI ile potansiyelini keşfetmeye başla.",
+  "registerName": "Ad Soyad",
+  "registerEmail": "E-posta Adresi",
+  "registerPassword": "Şifre",
+  "registerConfirmPassword": "Şifreyi Onayla",
+  "registerTermsPrefix": "",
+  "registerTermsLink": "Kullanım Koşulları",
+  "registerAnd": " ve ",
+  "registerPrivacyLink": "Gizlilik Politikası",
+  "registerTermsSuffix": "'nı okudum, kabul ediyorum.",
+  "termsTitle": "Kullanım Koşulları",
+  "termsContent": "ExamAI'ya hoş geldiniz! Platformumuzu kullanarak bu şartları kabul etmiş sayılırsınız.\n\n1. Şartların Kabulü: ExamAI'ya erişerek bu şartlara bağlı kalmayı kabul edersiniz.\n2. Kullanıcı Hesapları: Hesap bilgilerinizin gizliliğini korumaktan siz sorumlusunuz.\n3. İçerik Doğruluğu: Yapay zeka tarafından üretilen içerikler eğitim amaçlıdır. Kullanıcılar kritik bilgileri doğrulamalıdır.\n4. Yasaklanmış Davranışlar: Platformu kötüye kullanmamayı veya yasa dışı faaliyetlerde bulunmamayı kabul edersiniz.\n5. Değişiklikler: Bu şartları istediğimiz zaman güncelleme hakkını saklı tutarız.",
+  "privacyTitle": "Gizlilik Politikası",
+  "privacyContent": "ExamAI'da gizliliğinizi ciddiye alıyoruz.\n\n1. Bilgi Toplama: Hizmetlerimizi sunmak ve iyileştirmek için adınızı ve e-postanızı topluyoruz.\n2. Veri Kullanımı: Verileriniz kimlik doğrulama ve sınav deneyiminizi kişiselleştirmek için kullanılır.\n3. Veri Güvenliği: Bilgilerinizi korumak için gelişmiş güvenlik önlemleri uyguluyoruz.\n4. Üçüncü Taraflar: Kişisel verilerinizi pazarlama amacıyla üçüncü taraflarla satmıyoruz veya paylaşmıyoruz.\n5. Haklarınız: İstediğiniz zaman verilerinize erişim veya silinme talebinde bulunabilirsiniz.",
+  "registerButton": "Kayıt Ol",
+  "registerHaveAccount": "Zaten hesabın var mı? Giriş Yap",
+  "registerErrorName": "Lütfen adınızı girin.",
+  "registerErrorEmail": "Geçerli bir e-posta adresi girin.",
+  "registerErrorPassword": "Şifre en az 6 karakter olmalıdır.",
+  "registerErrorMatch": "Şifreler uyuşmuyor.",
+  "registerErrorTerms": "Lütfen kullanım koşullarını kabul edin.",
+  "registerErrorConflict": "Bu email zaten kayıtlı",
+  "registerGenericError": "Kayıt sırasında bir hata oluştu.",
+  "verifyTitle": "E-posta Doğrulama",
+  "verifyDesc": "{email} adresine bir doğrulama kodu gönderdik. Lütfen kodu aşağıya girin.",
+  "@verifyDesc": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "verifyButton": "Doğrula",
+  "verifyResend": "Yeni Kod Gönder",
+  "verifyWait": "{seconds} saniye bekleyin",
+  "@verifyWait": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "verifyErrorInvalid": "Kod yanlış",
+  "verifySuccess": "E-posta başarıyla doğrulandı",
+  "verifyGenericError": "Doğrulama sırasında bir hata oluştu.",
+  "myExamsTitle": "Sınavlarım",
+  "myExamsCreate": "Yeni Sınav",
+  "myExamsEmpty": "Henüz sınavın yok.",
+  "statusQueued": "Sırada",
+  "statusGenerating": "Hazırlanıyor",
+  "statusReady": "Hazır",
+  "statusFailed": "Hata",
+  "examQuestionCount": "{count} Soru",
+  "@examQuestionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "examLastScore": "Son Skor: ",
+  "commonClose": "Kapat"
+}

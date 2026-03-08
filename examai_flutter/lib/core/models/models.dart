@@ -1,4 +1,4 @@
-enum ExamStatus { QUEUED, GENERATING, READY, FAILED }
+enum ExamStatus { queued, generating, ready, failed }
 
 class Exam {
   final String id;
@@ -32,7 +32,7 @@ class Exam {
       prompt: json['prompt'] ?? '',
       status: ExamStatus.values.firstWhere(
         (e) => e.name == json['status'],
-        orElse: () => ExamStatus.QUEUED,
+        orElse: () => ExamStatus.queued,
       ),
       durationMin: json['durationMin'] ?? 0,
       questionCount: json['questionCount'] ?? 0,
