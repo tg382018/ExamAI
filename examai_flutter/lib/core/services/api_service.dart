@@ -3,7 +3,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiService {
   final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'http://localhost:3000', // Update with actual IP for physical devices
+    baseUrl:
+        'http://localhost:3000', // Update with actual IP for physical devices
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 10),
   ));
@@ -30,19 +31,36 @@ class ApiService {
 
   // Auth
   Future<Map<String, dynamic>> login(String email, String password) async {
-    final res = await _dio.post('/auth/login', data: {'email': email, 'password': password});
-    await _storage.write(key: 'token', value: res.data['token']);
+    final res = await _dio
+        .post('/auth/login', data: {'email': email, 'password': password});
+    if (res.data['token'] != null) {
+      await _storage.write(key: 'token', value: res.data['token']);
+    }
     return res.data;
   }
 
-  Future<Map<String, dynamic>> register(String email, String password, String name) async {
+  Future<Map<String, dynamic>> register(
+      String email, String password, String name) async {
     final res = await _dio.post('/auth/register', data: {
       'email': email,
       'password': password,
       'name': name,
     });
-    await _storage.write(key: 'token', value: res.data['token']);
+    // Token is no longer returned on register, only after verification
     return res.data;
+  }
+
+  Future<Map<String, dynamic>> verifyEmail(String email, String code) async {
+    final res =
+        await _dio.post('/auth/verify', data: {'email': email, 'code': code});
+    if (res.data['token'] != null) {
+      await _storage.write(key: 'token', value: res.data['token']);
+    }
+    return res.data;
+  }
+
+  Future<void> resendVerification(String email) async {
+    await _dio.post('/auth/resend-verification', data: {'email': email});
   }
 
   // Exams
@@ -69,7 +87,8 @@ class ApiService {
     return res.data;
   }
 
-  Future<Map<String, dynamic>> submitAttempt(String examId, List<Map<String, dynamic>> answers, DateTime startedAt) async {
+  Future<Map<String, dynamic>> submitAttempt(String examId,
+      List<Map<String, dynamic>> answers, DateTime startedAt) async {
     final res = await _dio.post('/exams/$examId/attempts', data: {
       'answers': answers,
       'startedAt': startedAt.toIso8601String(),
@@ -94,6 +113,7 @@ class ApiService {
 
   // Devices
   Future<void> registerDeviceToken(String token, String platform) async {
-    await _dio.post('/device-token', data: {'token': token, 'platform': platform});
+    await _dio
+        .post('/device-token', data: {'token': token, 'platform': platform});
   }
 }

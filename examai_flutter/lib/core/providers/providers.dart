@@ -1,6 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
+import '../services/preferences_service.dart';
+
+final preferencesServiceProvider = Provider((ref) => PreferencesService());
+
+final onboardingSeenProvider = FutureProvider<bool>((ref) {
+  return ref.watch(preferencesServiceProvider).hasSeenOnboarding();
+});
 
 final apiServiceProvider = Provider((ref) => ApiService());
 
@@ -18,8 +25,17 @@ class AuthNotifier extends StateNotifier<User?> {
   }
 
   Future<void> register(String email, String password, String name) async {
-    final data = await _api.register(email, password, name);
+    await _api.register(email, password, name);
+    // Don't update state yet, wait for verification
+  }
+
+  Future<void> verify(String email, String code) async {
+    final data = await _api.verifyEmail(email, code);
     state = User.fromJson(data['user']);
+  }
+
+  Future<void> resendCode(String email) async {
+    await _api.resendVerification(email);
   }
 
   void logout() {
@@ -53,7 +69,8 @@ final examDetailProvider = FutureProvider.family<Exam, String>((ref, id) async {
   return Exam.fromJson(data);
 });
 
-final examQuestionsProvider = FutureProvider.family<List<Question>, String>((ref, id) async {
+final examQuestionsProvider =
+    FutureProvider.family<List<Question>, String>((ref, id) async {
   final api = ref.read(apiServiceProvider);
   final data = await api.getExamDetail(id);
   final List questions = data['questions'] ?? [];

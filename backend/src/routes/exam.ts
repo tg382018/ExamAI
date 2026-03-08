@@ -62,7 +62,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
                 attempts: { select: { score: true }, orderBy: { finishedAt: 'desc' }, take: 1 },
             },
         });
-        const result = exams.map(e => ({
+        const result = exams.map((e: any) => ({
             ...e,
             lastScore: e.attempts[0]?.score ?? null,
         }));
@@ -77,7 +77,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 router.get('/:id', async (req: AuthRequest, res: Response) => {
     try {
         const exam = await prisma.exam.findFirst({
-            where: { id: req.params.id, userId: req.userId! },
+            where: { id: req.params.id as string, userId: req.userId! },
             include: {
                 questions: {
                     orderBy: { orderIndex: 'asc' },
@@ -101,11 +101,11 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 router.get('/:id/solutions', async (req: AuthRequest, res: Response) => {
     try {
         const attempt = await prisma.attempt.findFirst({
-            where: { examId: req.params.id, userId: req.userId!, finishedAt: { not: null } },
+            where: { examId: req.params.id as string, userId: req.userId!, finishedAt: { not: null } },
         });
         if (!attempt) return res.status(403).json({ error: 'Sınavı tamamlamadan çözümleri göremezsiniz' });
         const questions = await prisma.question.findMany({
-            where: { examId: req.params.id },
+            where: { examId: req.params.id as string },
             orderBy: { orderIndex: 'asc' },
         });
         return res.json(questions);
@@ -119,7 +119,7 @@ router.get('/:id/solutions', async (req: AuthRequest, res: Response) => {
 router.get('/:id/summary', async (req: AuthRequest, res: Response) => {
     try {
         const exam = await prisma.exam.findFirst({
-            where: { id: req.params.id, userId: req.userId! },
+            where: { id: req.params.id as string, userId: req.userId! },
             select: { aiSummary: true, status: true },
         });
         if (!exam) return res.status(404).json({ error: 'Sınav bulunamadı' });
@@ -136,7 +136,7 @@ router.post('/:id/attempts', async (req: AuthRequest, res: Response) => {
     try {
         const { answers, startedAt } = req.body;
         // answers: [{ questionId, selectedOption }]
-        const questions = await prisma.question.findMany({ where: { examId: req.params.id } });
+        const questions = await prisma.question.findMany({ where: { examId: req.params.id as string } });
         if (questions.length === 0) return res.status(400).json({ error: 'Sınav soruları bulunamadı' });
 
         let correct = 0, wrong = 0, empty = 0;
@@ -155,7 +155,7 @@ router.post('/:id/attempts', async (req: AuthRequest, res: Response) => {
 
         const attempt = await prisma.attempt.create({
             data: {
-                examId: req.params.id,
+                examId: req.params.id as string,
                 userId: req.userId!,
                 answers,
                 score,
@@ -177,7 +177,7 @@ router.post('/:id/attempts', async (req: AuthRequest, res: Response) => {
 router.get('/attempts/:attemptId', async (req: AuthRequest, res: Response) => {
     try {
         const attempt = await prisma.attempt.findFirst({
-            where: { id: req.params.attemptId, userId: req.userId! },
+            where: { id: req.params.attemptId as string, userId: req.userId! },
             include: { exam: { select: { title: true, questionCount: true } } },
         });
         if (!attempt) return res.status(404).json({ error: 'Sonuç bulunamadı' });

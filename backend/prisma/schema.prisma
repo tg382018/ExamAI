@@ -23,6 +23,8 @@ model User {
   passwordHash String
   name         String
   createdAt    DateTime      @default(now())
+  isVerified   Boolean       @default(false)
+  verificationCode String?
   exams        Exam[]
   attempts     Attempt[]
   deviceTokens DeviceToken[]
