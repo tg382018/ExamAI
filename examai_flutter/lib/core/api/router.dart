@@ -12,7 +12,6 @@ import '../../features/score/score_screen.dart';
 import '../../features/settings/settings_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
   final onboardingSeenAsync = ref.watch(onboardingSeenProvider);
 
   return GoRouter(
@@ -38,13 +37,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
         path: '/my-exams',
         builder: (context, state) => const DashboardScreen(),
         routes: [
-          GoRoute(
-            path: 'settings',
-            builder: (context, state) => const SettingsScreen(),
-          ),
           GoRoute(
             path: 'create',
             builder: (context, state) => const CreateScreen(),
@@ -64,8 +63,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
     redirect: (context, state) {
       final onboardingSeen = onboardingSeenAsync.valueOrNull;
-      // If onboarding status is not yet loaded, don't redirect yet
       if (onboardingSeen == null) return null;
+
+      // Read auth state inside redirect instead of watching at provider level
+      // This prevents the entire GoRouter from being recreated on auth changes
+      final authState = ref.read(authProvider);
 
       final isAtOnboarding = state.matchedLocation == '/onboarding';
       final isAuthPath = state.matchedLocation == '/login' ||
@@ -87,7 +89,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // 3. If user is NOT logged in
-      // If they are at onboarding (which they've seen), or at a protected path, go to login
       if (isAtOnboarding || (!isAuthPath && authState.user == null)) {
         return '/login';
       }

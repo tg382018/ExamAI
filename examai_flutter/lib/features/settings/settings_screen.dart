@@ -184,45 +184,104 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _showChangePasswordDialog(BuildContext context) {
+    final oldController = TextEditingController();
+    final newController = TextEditingController();
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Şifre Değiştir', style: GoogleFonts.outfit()),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: InputDecoration(
-                hintText: 'Mevcut Şifre',
-                hintStyle: GoogleFonts.outfit(),
-              ),
-              obscureText: true,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              decoration: InputDecoration(
-                hintText: 'Yeni Şifre',
-                hintStyle: GoogleFonts.outfit(),
-              ),
-              obscureText: true,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('İptal', style: GoogleFonts.outfit(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF10B981),
-              foregroundColor: Colors.black,
-            ),
-            child: Text('Güncelle',
+      builder: (context) => Consumer(
+        builder: (context, ref, child) {
+          final authState = ref.watch(authProvider);
+          return AlertDialog(
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1E293B)
+                : Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: Text('Şifre Değiştir',
                 style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-          ),
-        ],
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: oldController,
+                  decoration: InputDecoration(
+                    labelText: 'Mevcut Şifre',
+                    labelStyle: GoogleFonts.outfit(),
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  obscureText: true,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: newController,
+                  decoration: InputDecoration(
+                    labelText: 'Yeni Şifre',
+                    labelStyle: GoogleFonts.outfit(),
+                    prefixIcon: const Icon(Icons.vpn_key_outlined),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  obscureText: true,
+                ),
+                if (authState.error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      authState.error!,
+                      style: GoogleFonts.outfit(
+                          color: Colors.redAccent, fontSize: 13),
+                    ),
+                  ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: authState.isLoading ? null : () => context.pop(),
+                child: Text('İptal',
+                    style: GoogleFonts.outfit(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                onPressed: authState.isLoading
+                    ? null
+                    : () async {
+                        if (oldController.text.isEmpty ||
+                            newController.text.isEmpty) return;
+                        final success = await ref
+                            .read(authProvider.notifier)
+                            .changePassword(
+                                oldController.text, newController.text);
+                        if (success && context.mounted) {
+                          context.pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Şifre başarıyla güncellendi'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+                child: authState.isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      )
+                    : Text('Güncelle',
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

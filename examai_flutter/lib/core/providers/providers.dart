@@ -106,6 +106,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<bool> changePassword(String oldPassword, String newPassword) async {
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _api.changePassword(oldPassword, newPassword);
+      state = state.copyWith(isLoading: false);
+      return true;
+    } on DioException catch (e) {
+      final msg = e.response?.data?['error'] ?? e.toString();
+      state = state.copyWith(isLoading: false, error: msg.toString());
+      return false;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString());
+      return false;
+    }
+  }
+
   void logout() {
     state = AuthState();
   }

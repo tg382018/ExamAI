@@ -63,6 +63,13 @@ class ApiService {
     await _dio.post('/auth/resend-verification', data: {'email': email});
   }
 
+  Future<void> changePassword(String oldPassword, String newPassword) async {
+    await _dio.post('/auth/change-password', data: {
+      'oldPassword': oldPassword,
+      'newPassword': newPassword,
+    });
+  }
+
   // Exams
   Future<Map<String, dynamic>> getDraftPlan(String prompt) async {
     final res = await _dio.post('/exam/draft', data: {'prompt': prompt});

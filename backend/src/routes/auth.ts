@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/prisma';
 import { emailService } from '../services/email.service';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
@@ -156,6 +157,39 @@ router.post('/login', async (req: Request, res: Response) => {
 
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
         return res.json({ user: { id: user.id, email: user.email, name: user.name }, token });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Sunucu hatası' });
+    }
+});
+
+// POST /auth/change-password
+router.post('/change-password', authMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const userId = req.userId;
+
+        if (!oldPassword || !newPassword) {
+            return res.status(400).json({ error: 'Mevcut şifre ve yeni şifre zorunlu' });
+        }
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+        }
+
+        const valid = await bcrypt.compare(oldPassword, user.passwordHash);
+        if (!valid) {
+            return res.status(401).json({ error: 'Mevcut şifre yanlış' });
+        }
+
+        const newPasswordHash = await bcrypt.hash(newPassword, 10);
+        await prisma.user.update({
+            where: { id: userId },
+            data: { passwordHash: newPasswordHash }
+        });
+
+        return res.json({ message: 'Şifre başarıyla güncellendi' });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ error: 'Sunucu hatası' });

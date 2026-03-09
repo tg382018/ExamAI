@@ -40,13 +40,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final l10n = AppLocalizations.of(context)!;
 
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.loginErrorEmpty)),
-      );
+      _showError(l10n.loginErrorEmpty);
       return;
     }
-
-    debugPrint('Attempting login for: ${_emailController.text.trim()}');
 
     final success = await ref.read(authProvider.notifier).login(
           _emailController.text.trim(),
@@ -54,52 +50,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         );
 
     if (success) {
-      debugPrint('Login success');
       if (mounted) context.go('/my-exams');
     } else {
       if (mounted) {
         final error = ref.read(authProvider).error;
-        debugPrint('Login failed with error: $error');
-
-        debugPrint('DEBUG: Error found in state: $error');
-        String errorMessage = l10n.loginGenericError;
-        bool unverified = false;
-
-        if (error != null) {
-          if (error.contains('Geçersiz email veya şifre')) {
-            errorMessage = l10n.loginErrorInvalid;
-          } else if (error.contains('E-posta doğrulanmamış')) {
-            errorMessage = l10n.loginErrorUnverified;
-            unverified = true;
-          } else {
-            errorMessage = error;
-          }
+        if (error != null && error.contains('E-posta doğrulanmamış')) {
+          _showError(l10n.loginErrorUnverified);
+        } else {
+          _showError(l10n.loginErrorInvalid);
         }
-
-        debugPrint('DEBUG: Final error message to show: $errorMessage');
-
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.redAccent,
-            duration: const Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(20),
-            action: unverified
-                ? SnackBarAction(
-                    label: l10n.loginVerifyAction,
-                    textColor: Colors.white,
-                    onPressed: () {
-                      context.push('/verify-email',
-                          extra: _emailController.text.trim());
-                    },
-                  )
-                : null,
-          ),
-        );
       }
     }
+  }
+
+  void _showError(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent),
+            const SizedBox(width: 10),
+            Text('Hata', style: GoogleFonts.outfit(color: Colors.white)),
+          ],
+        ),
+        content:
+            Text(message, style: GoogleFonts.outfit(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('Tamam',
+                style: GoogleFonts.outfit(
+                    color: const Color(0xFF10B981),
+                    fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -154,7 +143,7 @@ class _BackgroundBlobs extends StatelessWidget {
               top: -100 + (30 * animation.value),
               left: -50 + (20 * animation.value),
               child: const _Blob(
-                color: Color(0xFF6366F1), // Indigo
+                color: Color(0xFF10B981), // Emerald
                 size: 300,
                 opacity: 0.4,
               ),
@@ -163,7 +152,7 @@ class _BackgroundBlobs extends StatelessWidget {
               bottom: -50 - (30 * animation.value),
               right: -50 - (20 * animation.value),
               child: const _Blob(
-                color: Color(0xFFA855F7), // Purple
+                color: Color(0xFF065F46), // Dark Emerald
                 size: 250,
                 opacity: 0.4,
               ),
@@ -328,7 +317,7 @@ class _InputField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFF6366F1)),
+          borderSide: const BorderSide(color: Color(0xFF10B981)),
         ),
       ),
     );
@@ -353,12 +342,12 @@ class _LoginButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
+            colors: [Color(0xFF10B981), Color(0xFF065F46)],
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6366F1).withValues(alpha: 0.4),
+              color: const Color(0xFF10B981).withValues(alpha: 0.4),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),

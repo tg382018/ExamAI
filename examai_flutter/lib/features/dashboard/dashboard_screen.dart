@@ -16,6 +16,9 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  // Theme-aware color helpers
+  bool get _isDark => Theme.of(context).brightness == Brightness.dark;
+
   final _promptController = TextEditingController();
   final _subtopicController = TextEditingController();
   bool _loading = false;
@@ -128,7 +131,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Icon(icon, color: const Color(0xFF10B981), size: 24),
           const SizedBox(width: 16),
           Text(label,
-              style: GoogleFonts.outfit(color: Colors.white, fontSize: 16)),
+              style: GoogleFonts.outfit(
+                  color: _isDark ? Colors.white : Colors.black87,
+                  fontSize: 16)),
         ],
       ),
     );
@@ -165,9 +170,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF021A12),
+      backgroundColor:
+          isDark ? const Color(0xFF021A12) : const Color(0xFFF1F5F9),
       body: Stack(
         children: [
           // Background Orbs
@@ -213,6 +220,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildHeader(AppLocalizations l10n) {
     final user = ref.watch(authProvider).user;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -237,10 +245,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               children: [
                 Text(l10n.dashboardGreeting,
                     style: GoogleFonts.outfit(
-                        color: const Color(0xFF94A3B8), fontSize: 13)),
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : const Color(0xFF64748B),
+                        fontSize: 13)),
                 Text(user?.name ?? 'AI Master',
                     style: GoogleFonts.outfit(
-                        color: Colors.white,
+                        color: isDark ? Colors.white : Colors.black87,
                         fontSize: 20,
                         fontWeight: FontWeight.bold)),
               ],
@@ -248,22 +259,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ],
         ),
         _buildIconButton(
-            Icons.settings_outlined, () => context.push('/my-exams/settings')),
+            Icons.settings_outlined, () => context.push('/settings')),
       ],
     );
   }
 
   Widget _buildIconButton(IconData icon, VoidCallback onTap) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: 48,
       height: 48,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.07),
+        color: isDark ? Colors.white.withValues(alpha: 0.07) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.06)),
       ),
       child: IconButton(
-          onPressed: onTap, icon: Icon(icon, color: Colors.white, size: 22)),
+          onPressed: onTap,
+          icon: Icon(icon,
+              color: isDark ? Colors.white : Colors.black87, size: 22)),
     );
   }
 
@@ -274,8 +291,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         children: [
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            child: Image.network(
-              'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=600&q=80',
+            child: Image.asset(
+              'assets/images/header_up.png',
               height: 140,
               width: double.infinity,
               fit: BoxFit.cover,
@@ -293,7 +310,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     const SizedBox(width: 10),
                     Text(l10n.dashboardCreateTitle,
                         style: GoogleFonts.outfit(
-                            color: Colors.white,
+                            color: _isDark ? Colors.white : Colors.black87,
                             fontSize: 22,
                             fontWeight: FontWeight.bold)),
                   ],
@@ -319,7 +336,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.3),
+        color: _isDark
+            ? Colors.black.withValues(alpha: 0.3)
+            : const Color(0xFFE2E8F0),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -348,16 +367,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return TextField(
       controller: _promptController,
       maxLines: 4,
-      style: GoogleFonts.outfit(color: Colors.white),
+      style: GoogleFonts.outfit(color: _isDark ? Colors.white : Colors.black87),
       decoration: InputDecoration(
         hintText: l10n.dashboardPromptHint,
-        hintStyle:
-            GoogleFonts.outfit(color: const Color(0xFF94A3B8), fontSize: 14),
+        hintStyle: GoogleFonts.outfit(
+            color: _isDark ? const Color(0xFF94A3B8) : const Color(0xFF94A3B8),
+            fontSize: 14),
         filled: true,
-        fillColor: Colors.black.withValues(alpha: 0.3),
+        fillColor: _isDark
+            ? Colors.black.withValues(alpha: 0.3)
+            : const Color(0xFFF1F5F9),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+          borderSide: BorderSide(
+              color: _isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : const Color(0xFFCBD5E1)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide(
+              color: _isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : const Color(0xFFCBD5E1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
         ),
       ),
     );
@@ -447,7 +483,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Expanded(
             child: TextField(
               controller: _subtopicController,
-              style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+              style: GoogleFonts.outfit(
+                  color: _isDark ? Colors.white : Colors.black87, fontSize: 13),
               decoration: InputDecoration(
                 hintText: l10n.dashboardFilterSubtopicHint,
                 hintStyle: GoogleFonts.outfit(color: const Color(0xFF94A3B8)),
@@ -492,7 +529,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             .map((s) => Chip(
                   label: Text(s,
                       style: GoogleFonts.outfit(
-                          color: Colors.white, fontSize: 12)),
+                          color: _isDark ? Colors.white : Colors.black87,
+                          fontSize: 12)),
                   backgroundColor: Colors.white.withValues(alpha: 0.1),
                   onDeleted: () => setState(() => _subtopics.remove(s)),
                   deleteIcon:
@@ -564,7 +602,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   fit: BoxFit.scaleDown,
                   child: Text(l10n.dashboardAutoTitle,
                       style: GoogleFonts.outfit(
-                          color: Colors.white,
+                          color: _isDark ? Colors.white : Colors.black87,
                           fontSize: 18,
                           fontWeight: FontWeight.bold)),
                 ),
@@ -642,7 +680,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             // Integrated Exam Template Tabs
             Text("Sınav Şablonu",
                 style: GoogleFonts.outfit(
-                    color: Colors.white,
+                    color: _isDark ? Colors.white : Colors.black87,
                     fontSize: 14,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
@@ -701,9 +739,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: _isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.all(
+              color: _isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : const Color(0xFFCBD5E1)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -711,7 +752,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             Icon(icon, color: const Color(0xFF10B981), size: 18),
             const SizedBox(width: 8),
             Text(label,
-                style: GoogleFonts.outfit(color: Colors.white, fontSize: 14)),
+                style: GoogleFonts.outfit(
+                    color: _isDark ? Colors.white : Colors.black87,
+                    fontSize: 14)),
           ],
         ),
       ),
@@ -906,7 +949,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                     title: Text(options[index],
                         style: GoogleFonts.outfit(
-                            color: Colors.white, fontSize: 15)),
+                            color: _isDark ? Colors.white : Colors.black87,
+                            fontSize: 15)),
                     onTap: () {
                       onSelect(options[index]);
                       Navigator.pop(context);
@@ -928,7 +972,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.3),
+        color: _isDark
+            ? Colors.black.withValues(alpha: 0.3)
+            : const Color(0xFFE2E8F0),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -959,16 +1005,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return TextField(
       controller: _autoPromptController,
       maxLines: 3,
-      style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+      style: GoogleFonts.outfit(
+          color: _isDark ? Colors.white : Colors.black87, fontSize: 13),
       decoration: InputDecoration(
         hintText: "Otomasyon için sınav açıklaması...",
         hintStyle:
             GoogleFonts.outfit(color: const Color(0xFF94A3B8), fontSize: 12),
         filled: true,
-        fillColor: Colors.black.withValues(alpha: 0.3),
+        fillColor: _isDark
+            ? Colors.black.withValues(alpha: 0.3)
+            : const Color(0xFFF1F5F9),
         border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+              color: _isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : const Color(0xFFCBD5E1)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+              color: _isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : const Color(0xFFCBD5E1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+        ),
       ),
     );
   }
@@ -1084,7 +1148,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SizedBox(width: 10),
                   Text(l10n.dashboardArchiveTitle,
                       style: GoogleFonts.outfit(
-                          color: Colors.white,
+                          color: _isDark ? Colors.white : Colors.black87,
                           fontSize: 20,
                           fontWeight: FontWeight.bold)),
                 ],
@@ -1129,7 +1193,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Expanded(
             child: TextField(
               controller: _autoSubtopicController,
-              style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+              style: GoogleFonts.outfit(
+                  color: _isDark ? Colors.white : Colors.black87, fontSize: 13),
               decoration: InputDecoration(
                 hintText: l10n.dashboardFilterSubtopicHint,
                 hintStyle: GoogleFonts.outfit(color: const Color(0xFF94A3B8)),
@@ -1174,7 +1239,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             .map((s) => Chip(
                   label: Text(s,
                       style: GoogleFonts.outfit(
-                          color: Colors.white, fontSize: 12)),
+                          color: _isDark ? Colors.white : Colors.black87,
+                          fontSize: 12)),
                   backgroundColor: Colors.white.withValues(alpha: 0.1),
                   onDeleted: () => setState(() => _autoSubtopics.remove(s)),
                   deleteIcon:
@@ -1202,6 +1268,9 @@ class _TabButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inactiveColor =
+        isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -1217,17 +1286,14 @@ class _TabButton extends StatelessWidget {
           children: [
             Icon(icon,
                 size: 16,
-                color: isActive
-                    ? const Color(0xFF022C22)
-                    : const Color(0xFF94A3B8)),
+                color: isActive ? const Color(0xFF022C22) : inactiveColor),
             Flexible(
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(label,
                     style: GoogleFonts.outfit(
-                        color: isActive
-                            ? const Color(0xFF022C22)
-                            : const Color(0xFF94A3B8),
+                        color:
+                            isActive ? const Color(0xFF022C22) : inactiveColor,
                         fontWeight: FontWeight.w600,
                         fontSize: 12)),
               ),
@@ -1254,14 +1320,18 @@ class _FilterBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : const Color(0xFFCBD5E1)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1273,11 +1343,14 @@ class _FilterBox extends StatelessWidget {
                 children: [
                   Text(label,
                       style: GoogleFonts.outfit(
-                          color: const Color(0xFF94A3B8), fontSize: 11)),
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
+                          fontSize: 11)),
                   const SizedBox(height: 2),
                   Text(value,
                       style: GoogleFonts.outfit(
-                          color: Colors.white,
+                          color: isDark ? Colors.white : Colors.black87,
                           fontSize: 14,
                           fontWeight: FontWeight.bold),
                       maxLines: 1,
@@ -1286,7 +1359,9 @@ class _FilterBox extends StatelessWidget {
               ),
             ),
             Icon(Icons.keyboard_arrow_down_rounded,
-                color: Colors.white.withValues(alpha: 0.4)),
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.4)
+                    : Colors.black38),
           ],
         ),
       ),
@@ -1308,6 +1383,7 @@ class _ScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1316,10 +1392,14 @@ class _ScheduleCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: isActive
               ? const Color(0xFF10B981).withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.05),
+              : isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: isActive ? const Color(0xFF10B981) : Colors.white10),
+              color: isActive
+                  ? const Color(0xFF10B981)
+                  : (isDark ? Colors.white10 : const Color(0xFFCBD5E1))),
         ),
         child: Row(
           children: [
@@ -1328,11 +1408,15 @@ class _ScheduleCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isActive
                     ? const Color(0xFF10B981).withValues(alpha: 0.2)
-                    : Colors.white.withValues(alpha: 0.05),
+                    : isDark
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.grey.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.auto_awesome_motion,
-                  color: isActive ? const Color(0xFF10B981) : Colors.white24,
+                  color: isActive
+                      ? const Color(0xFF10B981)
+                      : (isDark ? Colors.white24 : Colors.black26),
                   size: 24),
             ),
             const SizedBox(width: 16),
@@ -1342,14 +1426,16 @@ class _ScheduleCard extends StatelessWidget {
                 children: [
                   Text(label,
                       style: GoogleFonts.outfit(
-                          color: Colors.white,
+                          color: isDark ? Colors.white : Colors.black87,
                           fontSize: 16,
                           fontWeight: FontWeight.w600)),
                   Text(time,
                       style: GoogleFonts.outfit(
                           color: isActive
                               ? const Color(0xFF10B981)
-                              : const Color(0xFF94A3B8),
+                              : (isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B)),
                           fontSize: 13)),
                 ],
               ),
@@ -1370,12 +1456,16 @@ class _ArchiveListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: 100,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.06)),
       ),
       child: Row(
         children: [
@@ -1399,7 +1489,7 @@ class _ArchiveListItem extends StatelessWidget {
                 children: [
                   Text(exam.title,
                       style: GoogleFonts.outfit(
-                          color: Colors.white,
+                          color: isDark ? Colors.white : Colors.black87,
                           fontSize: 16,
                           fontWeight: FontWeight.w600),
                       maxLines: 1),
@@ -1407,8 +1497,9 @@ class _ArchiveListItem extends StatelessWidget {
                   Row(
                     children: [
                       Text('${exam.questionCount} Questions',
-                          style: const TextStyle(
-                              color: Colors.white60, fontSize: 12)),
+                          style: TextStyle(
+                              color: isDark ? Colors.white60 : Colors.black45,
+                              fontSize: 12)),
                       if (exam.lastScore != null) ...[
                         const SizedBox(width: 8),
                         Text('%${exam.lastScore} Puan',
