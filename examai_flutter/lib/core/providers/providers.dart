@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../services/preferences_service.dart';
+import 'package:dio/dio.dart';
 
 class AuthState {
   final User? user;
@@ -44,7 +46,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
       );
       return true;
+    } on DioException catch (e) {
+      final msg = e.response?.data?['error'] ?? e.toString();
+      debugPrint('DioException in login: $msg');
+      state = state.copyWith(isLoading: false, error: msg.toString());
+      return false;
     } catch (e) {
+      debugPrint('Unexpected error in login: $e');
       state = state.copyWith(isLoading: false, error: e.toString());
       return false;
     }
@@ -56,7 +64,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _api.register(email, password, name);
       state = state.copyWith(isLoading: false);
       return true;
+    } on DioException catch (e) {
+      final msg = e.response?.data?['error'] ?? e.toString();
+      debugPrint('DioException in register: $msg');
+      state = state.copyWith(isLoading: false, error: msg.toString());
+      return false;
     } catch (e) {
+      debugPrint('Unexpected error in register: $e');
       state = state.copyWith(isLoading: false, error: e.toString());
       return false;
     }
@@ -71,7 +85,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
       );
       return true;
+    } on DioException catch (e) {
+      final msg = e.response?.data?['error'] ?? e.toString();
+      debugPrint('DioException in verify: $msg');
+      state = state.copyWith(isLoading: false, error: msg.toString());
+      return false;
     } catch (e) {
+      debugPrint('Unexpected error in verify: $e');
       state = state.copyWith(isLoading: false, error: e.toString());
       return false;
     }
@@ -127,3 +147,45 @@ final examQuestionsProvider =
   final List questions = data['questions'] ?? [];
   return questions.map((q) => Question.fromJson(q)).toList();
 });
+
+// Theme Provider
+final themeProvider = StateNotifierProvider<ThemeNotifier, bool>((ref) {
+  return ThemeNotifier(ref.read(preferencesServiceProvider));
+});
+
+class ThemeNotifier extends StateNotifier<bool> {
+  final PreferencesService _prefs;
+  ThemeNotifier(this._prefs) : super(true) {
+    _init();
+  }
+
+  Future<void> _init() async {
+    state = await _prefs.isDarkMode();
+  }
+
+  Future<void> toggleTheme() async {
+    state = !state;
+    await _prefs.setDarkMode(state);
+  }
+}
+
+// Reminders Provider
+final remindersProvider = StateNotifierProvider<RemindersNotifier, bool>((ref) {
+  return RemindersNotifier(ref.read(preferencesServiceProvider));
+});
+
+class RemindersNotifier extends StateNotifier<bool> {
+  final PreferencesService _prefs;
+  RemindersNotifier(this._prefs) : super(true) {
+    _init();
+  }
+
+  Future<void> _init() async {
+    state = await _prefs.areRemindersEnabled();
+  }
+
+  Future<void> toggleReminders() async {
+    state = !state;
+    await _prefs.setRemindersEnabled(state);
+  }
+}

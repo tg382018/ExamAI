@@ -459,6 +459,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close'**
   String get commonClose;
+
+  /// No description provided for @dashboardGreeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome Back,'**
+  String get dashboardGreeting;
+
+  /// No description provided for @dashboardCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Exam'**
+  String get dashboardCreateTitle;
+
+  /// No description provided for @dashboardTabPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Prompt'**
+  String get dashboardTabPrompt;
+
+  /// No description provided for @dashboardTabFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter & Create'**
+  String get dashboardTabFilter;
+
+  /// No description provided for @dashboardPromptHint.
+  ///
+  /// In en, this message translates to:
+  /// **'✨ e.g.: Prepare a 5-question, thought-provoking test on Quantum Physics...'**
+  String get dashboardPromptHint;
+
+  /// No description provided for @dashboardFilterLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Level'**
+  String get dashboardFilterLevel;
+
+  /// No description provided for @dashboardFilterTopic.
+  ///
+  /// In en, this message translates to:
+  /// **'Topic'**
+  String get dashboardFilterTopic;
+
+  /// No description provided for @dashboardFilterCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Count'**
+  String get dashboardFilterCount;
+
+  /// No description provided for @dashboardFilterType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get dashboardFilterType;
+
+  /// No description provided for @dashboardFilterSubtopicHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add subtopic...'**
+  String get dashboardFilterSubtopicHint;
+
+  /// No description provided for @dashboardGenerateBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Exam'**
+  String get dashboardGenerateBtn;
+
+  /// No description provided for @dashboardAutoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto Pilot'**
+  String get dashboardAutoTitle;
+
+  /// No description provided for @dashboardAutoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'How often should AI test you?'**
+  String get dashboardAutoDesc;
+
+  /// No description provided for @dashboardFreqDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get dashboardFreqDaily;
+
+  /// No description provided for @dashboardFreqWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get dashboardFreqWeekly;
+
+  /// No description provided for @dashboardFreqMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get dashboardFreqMonthly;
+
+  /// No description provided for @dashboardFreqPassive.
+  ///
+  /// In en, this message translates to:
+  /// **'Passive'**
+  String get dashboardFreqPassive;
+
+  /// No description provided for @dashboardAutoDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Day'**
+  String get dashboardAutoDay;
+
+  /// No description provided for @dashboardAutoTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Time'**
+  String get dashboardAutoTime;
+
+  /// No description provided for @dashboardAutoSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Auto-Pilot'**
+  String get dashboardAutoSave;
+
+  /// No description provided for @dashboardAutoActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Automation Active'**
+  String get dashboardAutoActive;
+
+  /// No description provided for @dashboardScheduleTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule Time'**
+  String get dashboardScheduleTime;
+
+  /// No description provided for @dashboardArchiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Archive'**
+  String get dashboardArchiveTitle;
+
+  /// No description provided for @dashboardViewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get dashboardViewAll;
 }
 
 class _AppLocalizationsDelegate

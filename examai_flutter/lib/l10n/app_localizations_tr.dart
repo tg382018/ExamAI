@@ -194,4 +194,77 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get commonClose => 'Kapat';
+
+  @override
+  String get dashboardGreeting => 'Tekrar Hoşgeldin,';
+
+  @override
+  String get dashboardCreateTitle => 'Sınav Oluştur';
+
+  @override
+  String get dashboardTabPrompt => 'AI Prompt';
+
+  @override
+  String get dashboardTabFilter => 'Filtreleyerek Oluştur';
+
+  @override
+  String get dashboardPromptHint =>
+      '✨ Örn: Kuantum Fiziği hakkında zor, 5 soruluk, düşündürücü bir test hazırla...';
+
+  @override
+  String get dashboardFilterLevel => 'Seviye';
+
+  @override
+  String get dashboardFilterTopic => 'Konu';
+
+  @override
+  String get dashboardFilterCount => 'Soru';
+
+  @override
+  String get dashboardFilterType => 'Tip';
+
+  @override
+  String get dashboardFilterSubtopicHint => 'Alt konu ekle...';
+
+  @override
+  String get dashboardGenerateBtn => 'Sınavı Yarat';
+
+  @override
+  String get dashboardAutoTitle => 'Otomatik Pilot';
+
+  @override
+  String get dashboardAutoDesc => 'Yapay zeka seni ne sıklıkla test etmeli?';
+
+  @override
+  String get dashboardFreqDaily => 'Günlük';
+
+  @override
+  String get dashboardFreqWeekly => 'Haftalık';
+
+  @override
+  String get dashboardFreqMonthly => 'Aylık';
+
+  @override
+  String get dashboardFreqPassive => 'Pasif';
+
+  @override
+  String get dashboardAutoDay => 'Gün Seç';
+
+  @override
+  String get dashboardAutoTime => 'Saat Seç';
+
+  @override
+  String get dashboardAutoSave => 'Otomatik Pilotu Güncelle';
+
+  @override
+  String get dashboardAutoActive => 'Otomasyon Aktif';
+
+  @override
+  String get dashboardScheduleTime => 'Planlanan Saat';
+
+  @override
+  String get dashboardArchiveTitle => 'Arşivim';
+
+  @override
+  String get dashboardViewAll => 'Hepsi';
 }

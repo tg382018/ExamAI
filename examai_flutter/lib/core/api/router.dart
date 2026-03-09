@@ -6,9 +6,10 @@ import '../../features/auth/register_screen.dart';
 import '../../features/auth/verify_email_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/create/create_screen.dart';
-import '../../features/my_exams/my_exams_screen.dart';
 import '../../features/exam_detail/exam_detail_screen.dart';
+import '../../features/dashboard/dashboard_screen.dart';
 import '../../features/score/score_screen.dart';
+import '../../features/settings/settings_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -38,8 +39,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/my-exams',
-        builder: (context, state) => const MyExamsScreen(),
+        builder: (context, state) => const DashboardScreen(),
         routes: [
+          GoRoute(
+            path: 'settings',
+            builder: (context, state) => const SettingsScreen(),
+          ),
           GoRoute(
             path: 'create',
             builder: (context, state) => const CreateScreen(),
@@ -58,26 +63,35 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
     redirect: (context, state) {
-      // Wait for onboarding status to be loaded
       final onboardingSeen = onboardingSeenAsync.valueOrNull;
+      // If onboarding status is not yet loaded, don't redirect yet
       if (onboardingSeen == null) return null;
 
       final isAtOnboarding = state.matchedLocation == '/onboarding';
+      final isAuthPath = state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register' ||
+          state.matchedLocation == '/verify-email';
 
+      // 1. If onboarding hasn't been seen, force them there
       if (!onboardingSeen) {
         return isAtOnboarding ? null : '/onboarding';
       }
 
-      // If they have seen onboarding, don't let them go back there
-      if (isAtOnboarding) {
-        return authState.user == null ? '/register' : '/my-exams';
+      // 2. If user is logged in
+      if (authState.user != null) {
+        // Don't allow them to stay on auth/onboarding screens
+        if (isAuthPath || isAtOnboarding) {
+          return '/my-exams';
+        }
+        return null;
       }
 
-      final isAuthPath = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register' ||
-          state.matchedLocation == '/verify-email';
-      if (authState.user == null) return isAuthPath ? null : '/login';
-      if (isAuthPath) return '/my-exams';
+      // 3. If user is NOT logged in
+      // If they are at onboarding (which they've seen), or at a protected path, go to login
+      if (isAtOnboarding || (!isAuthPath && authState.user == null)) {
+        return '/login';
+      }
+
       return null;
     },
   );

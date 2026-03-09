@@ -195,4 +195,77 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonClose => 'Close';
+
+  @override
+  String get dashboardGreeting => 'Welcome Back,';
+
+  @override
+  String get dashboardCreateTitle => 'Create Exam';
+
+  @override
+  String get dashboardTabPrompt => 'AI Prompt';
+
+  @override
+  String get dashboardTabFilter => 'Filter & Create';
+
+  @override
+  String get dashboardPromptHint =>
+      '✨ e.g.: Prepare a 5-question, thought-provoking test on Quantum Physics...';
+
+  @override
+  String get dashboardFilterLevel => 'Level';
+
+  @override
+  String get dashboardFilterTopic => 'Topic';
+
+  @override
+  String get dashboardFilterCount => 'Count';
+
+  @override
+  String get dashboardFilterType => 'Type';
+
+  @override
+  String get dashboardFilterSubtopicHint => 'Add subtopic...';
+
+  @override
+  String get dashboardGenerateBtn => 'Create Exam';
+
+  @override
+  String get dashboardAutoTitle => 'Auto Pilot';
+
+  @override
+  String get dashboardAutoDesc => 'How often should AI test you?';
+
+  @override
+  String get dashboardFreqDaily => 'Daily';
+
+  @override
+  String get dashboardFreqWeekly => 'Weekly';
+
+  @override
+  String get dashboardFreqMonthly => 'Monthly';
+
+  @override
+  String get dashboardFreqPassive => 'Passive';
+
+  @override
+  String get dashboardAutoDay => 'Select Day';
+
+  @override
+  String get dashboardAutoTime => 'Select Time';
+
+  @override
+  String get dashboardAutoSave => 'Update Auto-Pilot';
+
+  @override
+  String get dashboardAutoActive => 'Automation Active';
+
+  @override
+  String get dashboardScheduleTime => 'Schedule Time';
+
+  @override
+  String get dashboardArchiveTitle => 'My Archive';
+
+  @override
+  String get dashboardViewAll => 'All';
 }

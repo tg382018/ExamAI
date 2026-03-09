@@ -46,16 +46,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       return;
     }
 
+    debugPrint('Attempting login for: ${_emailController.text.trim()}');
+
     final success = await ref.read(authProvider.notifier).login(
           _emailController.text.trim(),
           _passwordController.text,
         );
 
     if (success) {
+      debugPrint('Login success');
       if (mounted) context.go('/my-exams');
     } else {
       if (mounted) {
         final error = ref.read(authProvider).error;
+        debugPrint('Login failed with error: $error');
+
+        debugPrint('DEBUG: Error found in state: $error');
         String errorMessage = l10n.loginGenericError;
         bool unverified = false;
 
@@ -70,10 +76,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           }
         }
 
+        debugPrint('DEBUG: Final error message to show: $errorMessage');
+
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
             backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 4),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(20),
             action: unverified
                 ? SnackBarAction(
                     label: l10n.loginVerifyAction,
