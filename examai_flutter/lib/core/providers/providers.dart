@@ -144,8 +144,7 @@ class ExamsNotifier extends StateNotifier<List<Exam>> {
     state = data.map((e) => Exam.fromJson(e)).toList();
   }
 
-  Future<String> proposeExam(String prompt) async {
-    final plan = await _api.getDraftPlan(prompt);
+  Future<String> proposeExam(Map<String, dynamic> plan, String prompt) async {
     return await _api.confirmExam(plan, prompt);
   }
 }

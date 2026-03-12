@@ -173,6 +173,10 @@ router.post('/change-password', authMiddleware, async (req: AuthRequest, res: Re
             return res.status(400).json({ error: 'Mevcut şifre ve yeni şifre zorunlu' });
         }
 
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: 'Yeni şifre en az 6 haneli olmalıdır' });
+        }
+
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user) {
             return res.status(404).json({ error: 'Kullanıcı bulunamadı' });

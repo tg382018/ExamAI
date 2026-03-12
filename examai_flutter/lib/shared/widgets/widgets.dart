@@ -1,6 +1,80 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/models/models.dart';
+import '../../l10n/app_localizations.dart';
+
+class StatusChip extends StatelessWidget {
+  final ExamStatus status;
+  final bool compact;
+
+  const StatusChip({
+    super.key,
+    required this.status,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    Color color;
+    String text;
+    bool loading = false;
+
+    switch (status) {
+      case ExamStatus.queued:
+        color = Colors.orange;
+        text = l10n.statusQueued;
+        loading = true;
+        break;
+      case ExamStatus.generating:
+        color = Colors.blue;
+        text = l10n.statusGenerating;
+        loading = true;
+        break;
+      case ExamStatus.ready:
+        color = const Color(0xFF10B981);
+        text = l10n.statusReady;
+        break;
+      case ExamStatus.failed:
+        color = Colors.redAccent;
+        text = l10n.statusFailed;
+        break;
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+          horizontal: compact ? 8 : 10, vertical: compact ? 2 : 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(compact ? 8 : 12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (loading) ...[
+            SizedBox(
+              width: compact ? 10 : 12,
+              height: compact ? 10 : 12,
+              child: CircularProgressIndicator(
+                  strokeWidth: compact ? 1.5 : 2, color: color),
+            ),
+            SizedBox(width: compact ? 4 : 6),
+          ],
+          Text(
+            text,
+            style: GoogleFonts.outfit(
+              color: color,
+              fontSize: compact ? 10 : 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;

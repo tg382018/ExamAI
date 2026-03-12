@@ -3,11 +3,15 @@ import OpenAI from 'openai';
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export interface DraftPlan {
+    isValid: boolean;
+    error?: string;
+    description: string;
     questionCount: number;
     durationMin: number;
     difficulty: string;
     title: string;
     outline: string[];
+    needsAscii: boolean;
 }
 
 /**
@@ -20,14 +24,27 @@ export async function generateDraftPlan(prompt: string): Promise<DraftPlan> {
         messages: [
             {
                 role: 'system',
-                content: `Sen yardımcı bir sınav planlayıcısısın. Kullanıcının talebine göre kısa bir sınav planı oluşturuyorsun. 
-Yalnızca JSON döndür, başka metin ekleme. Format:
+                content: `Sen bir AI sınav oluşturma uygulaması için çalışan uzman bir analiz asistanısın. Kullanıcının sınav talebini incele ve aşağıdaki kurallara göre bir plan veya hata mesajı üret.
+
+KURALLAR:
+1. Talebin sınav oluşturma ile bir ilgisi yoksa veya bilgiler bir sınav oluşturmak için (ders adı veya konu eksikliği gibi) çok yetersizse, "isValid": false dön.
+2. "isValid": false durumunda, "error" kısmına neden sınav oluşturulamayacağını açıklayan nazik bir Türkçe mesaj yaz.
+3. Kullanıcı 15'ten fazla soru isterse, soru sayısını otomatik olarak 15 ile sınırla. Soru sayısı belirtilmemişse varsayılan olarak 10 yap.
+4. "needsAscii" alanı: Eğer sınav konusu geometri, fizik veya grafik gerektiren bir konuysa (çizim gerektiriyorsa) true, aksi halde false dön.
+5. Sınavı henüz oluşturma, sadece teknik detayları içeren planı döndür.
+6. Yalnızca JSON döndür.
+
+DÖNÜŞ FORMATI:
 {
-  "title": "sınav başlığı",
-  "questionCount": 10,
-  "durationMin": 30,
-  "difficulty": "mixed",
-  "outline": ["konu1", "konu2", "konu3"]
+  "isValid": boolean,
+  "error": string | null,
+  "title": "Sınav Başlığı/Konu",
+  "description": "Genel sınav açıklaması ve teknik detaylar",
+  "questionCount": number,
+  "durationMin": number,
+  "difficulty": "Kolay|Orta|Zor",
+  "outline": ["konu başlığı 1", "konu başlığı 2"],
+  "needsAscii": boolean
 }`,
             },
             {
@@ -53,45 +70,49 @@ export interface GeneratedQuestion {
 
 /**
  * Full exam generation - called from worker.
- * Multi-step: outline → questions → explanations → summary
  */
 export async function generateFullExam(
     prompt: string,
     plan: DraftPlan
 ): Promise<{ questions: GeneratedQuestion[]; summary: string }> {
-    // Step 1: Generate questions with answer key + explanations (combined for efficiency)
     const questionsCompletion = await openai.chat.completions.create({
         model: process.env.OPENAI_MODEL || 'gpt-4o',
         temperature: 0.7,
         messages: [
             {
                 role: 'system',
-                content: `Sen kapsamlı bir sınav üreticisisin. Türkçe sınav soruları üretiyorsun.
-Aşağıdaki planı takip ederek tam sınav bilgisini JSON olarak döndür.
-Her soru için 5 şık (A, B, C, D, E) üret. correctOption 0-tabanlı index (0=A, 1=B, ...).
-Açıklama (explanation) Türkçe ve ayrıntılı olmalı.
-Format (kesinlikle JSON döndür):
+                content: `Sen profesyonel ve titiz bir eğitimcisin. Sana verilen sınav planına göre yüksek kaliteli bir sınav üret.
+Kullanıcının talebi: ${prompt}
+Plan Detayları:
+- Başlık: ${plan.title}
+- Açıklama: ${plan.description}
+- Soru Sayısı: ${plan.questionCount}
+- Konu: ${plan.outline.join(', ')}
+- ASCII Çizim Gerekli mi: ${plan.needsAscii ? 'Evet' : 'Hayır'}
+
+Lütfen her soru için şu verileri JSON formatında üret:
+- orderIndex: Sorunun sırası
+- text: Soru metni (Eğer ASCII çizim gerekliyse soru metnine dahil et)
+- options: 5 adet şık (A, B, C, D, E şeklinde)
+- correctOption: Doğru şıkkın indexi (0=A, 1=B, 2=C, 3=D, 4=E)
+- explanation: Detaylı çözüm anlatımı
+- difficulty: Sorunun zorluğu
+- topicTag: Konu başlığı
+
+Format (JSON):
 {
   "questions": [
     {
       "orderIndex": 0,
-      "text": "soru metni",
+      "text": "...",
       "options": ["A) ...", "B) ...", "C) ...", "D) ...", "E) ..."],
       "correctOption": 2,
-      "explanation": "ayrıntılı çözüm açıklaması",
-      "difficulty": "easy|medium|hard",
-      "topicTag": "konu"
+      "explanation": "...",
+      "difficulty": "...",
+      "topicTag": "..."
     }
   ]
 }`,
-            },
-            {
-                role: 'user',
-                content: `Prompt: ${prompt}
-Başlık: ${plan.title}
-Soru sayısı: ${plan.questionCount}
-Konular: ${plan.outline.join(', ')}
-Zorluk: ${plan.difficulty}`,
             },
         ],
         response_format: { type: 'json_object' },

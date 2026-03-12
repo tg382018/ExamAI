@@ -16,6 +16,7 @@ router.post('/draft', async (req: AuthRequest, res: Response) => {
         const { prompt } = req.body;
         if (!prompt) return res.status(400).json({ error: 'prompt zorunlu' });
         const plan = await generateDraftPlan(prompt);
+        // We return the plan object which now contains isValid and error
         return res.json({ suggested: plan });
     } catch (err) {
         console.error('[Draft]', err);

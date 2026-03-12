@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,10 +45,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   String _autoType = 'Multiple Choice';
   final List<String> _autoSubtopics = [];
 
+  Timer? _pollingTimer;
+
   @override
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(examsProvider.notifier).fetchExams());
+    _startPolling();
   }
 
   @override
@@ -56,10 +60,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     _subtopicController.dispose();
     _autoPromptController.dispose();
     _autoSubtopicController.dispose();
+    _pollingTimer?.cancel();
     super.dispose();
   }
 
+  void _startPolling() {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (!mounted) return;
+      final exams = ref.read(examsProvider);
+      final hasPending = exams.any((e) =>
+          e.status == ExamStatus.queued || e.status == ExamStatus.generating);
+      if (hasPending) {
+        ref.read(examsProvider.notifier).fetchExams();
+      }
+    });
+  }
+
   void _showPlanDialog(Map<String, dynamic> plan, String finalPrompt) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final List<dynamic> outline = plan['outline'] ?? [];
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -71,69 +91,168 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
             Text(
-              plan['title'] ?? 'Exam Plan',
+              'Sınav Taslağı Hazır! 🎯',
               style: GoogleFonts.outfit(
-                  color: Colors.white,
-                  fontSize: 20,
+                  color: const Color(0xFF10B981),
+                  fontSize: 16,
                   fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 20),
-            _buildPlanInfoRow(Icons.question_answer_outlined,
-                '${plan['questionCount']} Questions'),
-            _buildPlanInfoRow(
-                Icons.timer_outlined, '${plan['durationMin']} Minutes'),
-            const SizedBox(height: 32),
+            const SizedBox(height: 8),
+            Text(
+              plan['title'] ?? 'Yeni Sınav',
+              style: GoogleFonts.outfit(
+                  color: isDark ? Colors.white : Colors.black,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold),
+            ),
+            if (plan['description'] != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                plan['description'],
+                style: GoogleFonts.outfit(
+                    color: isDark ? Colors.white70 : Colors.black54,
+                    fontSize: 15,
+                    height: 1.4),
+              ),
+            ],
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                _buildPlanTag(
+                    Icons.help_outline, '${plan['questionCount']} Soru'),
+                const SizedBox(width: 12),
+                _buildPlanTag(
+                    Icons.timer_outlined, '${plan['durationMin']} Dakika'),
+                const SizedBox(width: 12),
+                _buildPlanTag(
+                    Icons.draw_outlined,
+                    plan['needsAscii'] == true
+                        ? 'ASCII: Evet'
+                        : 'ASCII: Hayır'),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Kapsanan Konular:',
+              style: GoogleFonts.outfit(
+                  color: isDark ? Colors.white70 : Colors.black54,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: outline.map((item) {
+                return Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: const Color(0xFF10B981).withOpacity(0.2)),
+                  ),
+                  child: Text(
+                    item.toString(),
+                    style: GoogleFonts.outfit(
+                        color: const Color(0xFF10B981),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
                 onPressed: () async {
+                  // Stage 3: Confirm and queue background generation
                   await ref
                       .read(examsProvider.notifier)
-                      .proposeExam(finalPrompt);
+                      .proposeExam(plan, finalPrompt);
                   if (mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Exam is being prepared!')),
+                      SnackBar(
+                        content: Text(
+                            'Sınavınız hazırlanıyor, bitince bildirim alacaksınız. ✨'),
+                        backgroundColor: const Color(0xFF10B981),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
                     );
+                    // Refresh exams list to see the "QUEUED" exam
+                    ref.read(examsProvider.notifier).fetchExams();
                   }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16)),
                 ),
-                child: Text('Confirm & Generate',
+                child: Text('Oluştur',
                     style: GoogleFonts.outfit(
-                        color: Colors.black, fontWeight: FontWeight.bold)),
+                        fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ),
             const SizedBox(height: 12),
-            Center(
+            SizedBox(
+              width: double.infinity,
+              height: 56,
               child: TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('Cancel',
-                    style: GoogleFonts.outfit(color: Colors.white60)),
+                child: Text('Vazgeç',
+                    style: GoogleFonts.outfit(
+                        color: isDark ? Colors.white60 : Colors.black45,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500)),
               ),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPlanInfoRow(IconData icon, String label) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+  Widget _buildPlanTag(IconData icon, String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.05)
+            : Colors.black.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: const Color(0xFF10B981), size: 24),
-          const SizedBox(width: 16),
+          Icon(icon, size: 16, color: const Color(0xFF10B981)),
+          const SizedBox(width: 6),
           Text(label,
               style: GoogleFonts.outfit(
-                  color: _isDark ? Colors.white : Colors.black87,
-                  fontSize: 16)),
+                  color: isDark ? Colors.white : Colors.black,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500)),
         ],
       ),
     );
@@ -153,17 +272,48 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     try {
       final api = ref.read(apiServiceProvider);
       final plan = await api.getDraftPlan(finalPrompt);
+      setState(() => _loading = false);
+
+      if (plan['isValid'] == false) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: const Color(0xFF1E293B),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              title: Text('Sınav Planlanamadı',
+                  style: GoogleFonts.outfit(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
+              content: Text(
+                plan['error'] ??
+                    'Girdiğiniz prompt sınav oluşturmak için yeterli değil.',
+                style: GoogleFonts.outfit(color: const Color(0xFF94A3B8)),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Tamam',
+                      style:
+                          GoogleFonts.outfit(color: const Color(0xFF10B981))),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+
       if (mounted) {
         _showPlanDialog(plan, finalPrompt);
       }
     } catch (e) {
+      setState(() => _loading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('Hata: $e')),
         );
       }
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -226,20 +376,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       children: [
         Row(
           children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF10B981), width: 2),
-                image: const DecorationImage(
-                  image: NetworkImage(
-                      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1458,7 +1594,6 @@ class _ArchiveListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      height: 100,
       decoration: BoxDecoration(
         color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -1467,54 +1602,76 @@ class _ArchiveListItem extends StatelessWidget {
                 ? Colors.white.withValues(alpha: 0.1)
                 : Colors.black.withValues(alpha: 0.06)),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 100,
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.horizontal(left: Radius.circular(20)),
-              image: DecorationImage(
-                image: NetworkImage(
-                    'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=200&q=80'),
-                fit: BoxFit.cover,
+      child: InkWell(
+        onTap: exam.status == ExamStatus.ready
+            ? () => context.push('/my-exams/${exam.id}')
+            : null,
+        borderRadius: BorderRadius.circular(20),
+        child: Row(
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: const BoxDecoration(
+                borderRadius:
+                    BorderRadius.horizontal(left: Radius.circular(20)),
+                image: DecorationImage(
+                  image: NetworkImage(
+                      'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=200&q=80'),
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(15.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(exam.title,
-                      style: GoogleFonts.outfit(
-                          color: isDark ? Colors.white : Colors.black87,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600),
-                      maxLines: 1),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Text('${exam.questionCount} Questions',
-                          style: TextStyle(
-                              color: isDark ? Colors.white60 : Colors.black45,
-                              fontSize: 12)),
-                      if (exam.lastScore != null) ...[
-                        const SizedBox(width: 8),
-                        Text('%${exam.lastScore} Puan',
-                            style: const TextStyle(
-                                color: Color(0xFF10B981),
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold)),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(15.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(exam.title,
+                              style: GoogleFonts.outfit(
+                                  color: exam.status == ExamStatus.ready
+                                      ? (isDark ? Colors.white : Colors.black87)
+                                      : (isDark
+                                          ? Colors.white54
+                                          : Colors.black45),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                        StatusChip(status: exam.status, compact: true),
                       ],
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Text('${exam.questionCount} Soru',
+                            style: TextStyle(
+                                color: isDark ? Colors.white60 : Colors.black45,
+                                fontSize: 12)),
+                        if (exam.status == ExamStatus.ready &&
+                            exam.lastScore != null) ...[
+                          const SizedBox(width: 8),
+                          Text('%${exam.lastScore} Puan',
+                              style: const TextStyle(
+                                  color: Color(0xFF10B981),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold)),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

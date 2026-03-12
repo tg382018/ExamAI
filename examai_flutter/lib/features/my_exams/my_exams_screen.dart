@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../l10n/app_localizations.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/providers.dart';
+import '../../shared/widgets/widgets.dart';
 
 class MyExamsScreen extends ConsumerStatefulWidget {
   const MyExamsScreen({super.key});
@@ -126,7 +127,7 @@ class _ExamCard extends StatelessWidget {
                           ),
                     ),
                   ),
-                  _StatusChip(status: exam.status),
+                  StatusChip(status: exam.status),
                 ],
               ),
               const SizedBox(height: 8),
@@ -180,65 +181,6 @@ class _ExamCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  final ExamStatus status;
-  const _StatusChip({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    Color color;
-    String text;
-    bool loading = false;
-
-    switch (status) {
-      case ExamStatus.queued:
-        color = Colors.orange;
-        text = l10n.statusQueued;
-        loading = true;
-        break;
-      case ExamStatus.generating:
-        color = Colors.blue;
-        text = l10n.statusGenerating;
-        loading = true;
-        break;
-      case ExamStatus.ready:
-        color = Colors.green;
-        text = l10n.statusReady;
-        break;
-      case ExamStatus.failed:
-        color = Colors.red;
-        text = l10n.statusFailed;
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (loading) ...[
-            SizedBox(
-              width: 12,
-              height: 12,
-              child: CircularProgressIndicator(strokeWidth: 2, color: color),
-            ),
-            const SizedBox(width: 6),
-          ],
-          Text(text,
-              style: TextStyle(
-                  color: color, fontSize: 12, fontWeight: FontWeight.bold)),
-        ],
       ),
     );
   }

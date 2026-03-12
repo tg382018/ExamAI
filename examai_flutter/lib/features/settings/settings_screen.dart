@@ -249,6 +249,18 @@ class SettingsScreen extends ConsumerWidget {
                     : () async {
                         if (oldController.text.isEmpty ||
                             newController.text.isEmpty) return;
+
+                        if (newController.text.length < 6) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content:
+                                  Text('Yeni şifre en az 6 haneli olmalıdır'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                          return;
+                        }
+
                         final success = await ref
                             .read(authProvider.notifier)
                             .changePassword(
