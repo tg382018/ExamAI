@@ -47,6 +47,7 @@ model Question {
   explanation   String
   difficulty    String @default("medium")
   topicTag      String @default("")
+  asciiArt      String?
   exam          Exam   @relation(fields: [examId], references: [id])
 }
 

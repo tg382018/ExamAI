@@ -2,8 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/providers.dart';
+import '../../core/widgets/math_text.dart';
 
 class ExamDetailScreen extends ConsumerStatefulWidget {
   final String id;
@@ -57,10 +59,12 @@ class _ExamDetailScreenState extends ConsumerState<ExamDetailScreen> {
     final questions = ref.read(examQuestionsProvider(widget.id)).value;
     if (questions == null) return;
 
-    final answerList = questions.map((q) => {
-      'questionId': q.id,
-      'selectedOption': _answers[q.id],
-    }).toList();
+    final answerList = questions
+        .map((q) => {
+              'questionId': q.id,
+              'selectedOption': _answers[q.id],
+            })
+        .toList();
 
     try {
       showDialog(
@@ -70,8 +74,9 @@ class _ExamDetailScreenState extends ConsumerState<ExamDetailScreen> {
       );
 
       final api = ref.read(apiServiceProvider);
-      final result = await api.submitAttempt(widget.id, answerList, _startedAt!);
-      
+      final result =
+          await api.submitAttempt(widget.id, answerList, _startedAt!);
+
       if (mounted) {
         Navigator.pop(context); // Close loading
         context.pushReplacement('/my-exams/score/${result['attemptId']}');
@@ -79,7 +84,8 @@ class _ExamDetailScreenState extends ConsumerState<ExamDetailScreen> {
     } catch (e) {
       if (mounted) {
         Navigator.pop(context); // Close loading
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hata: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Hata: $e')));
       }
     }
   }
@@ -93,7 +99,12 @@ class _ExamDetailScreenState extends ConsumerState<ExamDetailScreen> {
       appBar: AppBar(
         title: examAsync.when(
           data: (exam) {
-            _startTimer(exam.durationMin);
+            final durationStr =
+                GoRouterState.of(context).uri.queryParameters['duration'];
+            final duration = durationStr != null
+                ? int.tryParse(durationStr) ?? exam.durationMin
+                : (exam.durationMin > 0 ? exam.durationMin : 10);
+            _startTimer(duration);
             return Text(exam.title);
           },
           loading: () => const Text('Yükleniyor...'),
@@ -120,13 +131,16 @@ class _ExamDetailScreenState extends ConsumerState<ExamDetailScreen> {
           data: (questions) => Column(
             children: [
               LinearProgressIndicator(
-                value: (questions.isEmpty) ? 0 : (_currentIndex + 1) / questions.length,
+                value: (questions.isEmpty)
+                    ? 0
+                    : (_currentIndex + 1) / questions.length,
                 backgroundColor: Colors.white10,
               ),
               Expanded(
                 child: PageView.builder(
                   controller: _pageController,
-                  onPageChanged: (index) => setState(() => _currentIndex = index),
+                  onPageChanged: (index) =>
+                      setState(() => _currentIndex = index),
                   itemCount: questions.length,
                   itemBuilder: (context, index) {
                     final q = questions[index];
@@ -163,7 +177,9 @@ class _ExamDetailScreenState extends ConsumerState<ExamDetailScreen> {
                                   curve: Curves.easeInOut,
                                 )
                             : _submit,
-                        child: Text(_currentIndex < questions.length - 1 ? 'Sonraki' : 'Sınavı Bitir'),
+                        child: Text(_currentIndex < questions.length - 1
+                            ? 'Sonraki'
+                            : 'Sınavı Bitir'),
                       ),
                     ),
                   ],
@@ -198,6 +214,7 @@ class _QuestionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -205,12 +222,37 @@ class _QuestionView extends StatelessWidget {
         children: [
           Text(
             'Soru ${index + 1} / $total',
-            style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          Text(
+          if (question.asciiArt != null && question.asciiArt!.isNotEmpty) ...[
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.black26,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Text(
+                  question.asciiArt!,
+                  style: GoogleFonts.firaMono(
+                    fontSize: 14,
+                    height: 1.2,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          MathText(
             question.text,
-            style: const TextStyle(fontSize: 18, height: 1.5, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+                fontSize: 18, height: 1.5, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 32),
           ...List.generate(question.options.length, (i) {
@@ -223,10 +265,17 @@ class _QuestionView extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
+                    color: isSelected
+                        ? Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.1)
+                        : Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.transparent,
                       width: 2,
                     ),
                   ),
@@ -236,7 +285,9 @@ class _QuestionView extends StatelessWidget {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.white10,
+                          color: isSelected
+                              ? Theme.of(context).colorScheme.primary
+                              : Colors.white10,
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -251,7 +302,7 @@ class _QuestionView extends StatelessWidget {
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: Text(
+                        child: MathText(
                           question.options[i].substring(3), // Skip "A) "
                           style: TextStyle(
                             color: isSelected ? Colors.white : Colors.white70,

@@ -27,24 +27,42 @@ export function startWorker() {
                 // 2. Generate via LLM (multi-step)
                 const { questions, summary } = await generateFullExam(prompt, plan);
 
+                // Helper to remove null bytes that cause Postgres UTF8 errors
+                const sanitizeString = (str: string | undefined | null) => {
+                    if (!str) return str;
+                    return str.replace(/\0/g, '');
+                };
+
                 // 3. Save questions to DB
                 await prisma.question.createMany({
-                    data: questions.map(q => ({
-                        examId,
-                        orderIndex: q.orderIndex,
-                        text: q.text,
-                        options: q.options,
-                        correctOption: q.correctOption,
-                        explanation: q.explanation,
-                        difficulty: q.difficulty,
-                        topicTag: q.topicTag,
-                    })),
+                    data: questions.map(q => {
+                        // Find index of option containing " (DC)"
+                        const correctIndex = q.options.findIndex(opt => opt.includes(' (DC)'));
+                        // Clean all options of the " (DC)" tag and null bytes
+                        const cleanedOptions = q.options.map(opt => sanitizeString(opt.replace(' (DC)', '').trim()) as string);
+
+                        return {
+                            examId,
+                            orderIndex: q.orderIndex,
+                            text: sanitizeString(q.text) as string,
+                            options: cleanedOptions,
+                            correctOption: correctIndex >= 0 ? correctIndex : 0,
+                            explanation: sanitizeString(q.explanation) as string,
+                            difficulty: sanitizeString(q.difficulty) as string,
+                            topicTag: sanitizeString(q.topicTag) as string,
+                            asciiArt: sanitizeString(q.asciiArt),
+                        };
+                    }),
                 });
 
-                // 4. Mark as READY + save summary
+                // 4. Mark as READY + save summary + sync actual questionCount
                 await prisma.exam.update({
                     where: { id: examId },
-                    data: { status: 'READY', aiSummary: summary },
+                    data: {
+                        status: 'READY',
+                        aiSummary: summary,
+                        questionCount: questions.length, // Sync count in case LLM deviated
+                    },
                 });
 
                 // 5. Send FCM push notification

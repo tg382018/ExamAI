@@ -93,8 +93,10 @@ class ScoreScreen extends ConsumerWidget {
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) =>
-                            SolutionsScreen(examId: attempt.examId)),
+                        builder: (_) => SolutionsScreen(
+                              examId: attempt.examId,
+                              userAnswers: attempt.answers,
+                            )),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -177,7 +179,10 @@ class _ActionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: Theme.of(context).colorScheme.primary),

@@ -31,7 +31,7 @@ class Exam {
       title: json['title'],
       prompt: json['prompt'] ?? '',
       status: ExamStatus.values.firstWhere(
-        (e) => e.name == json['status'],
+        (e) => e.name == json['status'].toString().toLowerCase(),
         orElse: () => ExamStatus.queued,
       ),
       durationMin: json['durationMin'] ?? 0,
@@ -53,6 +53,7 @@ class Question {
   final String? explanation;
   final String difficulty;
   final String topicTag;
+  final String? asciiArt;
 
   Question({
     required this.id,
@@ -63,18 +64,20 @@ class Question {
     this.explanation,
     required this.difficulty,
     required this.topicTag,
+    this.asciiArt,
   });
 
   factory Question.fromJson(Map<String, dynamic> json) {
     return Question(
       id: json['id'],
-      orderIndex: json['orderIndex'],
-      text: json['text'],
-      options: List<String>.from(json['options']),
+      orderIndex: json['orderIndex'] ?? 0,
+      text: json['text'] ?? '',
+      options: List<String>.from(json['options'] ?? []),
       correctOption: json['correctOption'],
       explanation: json['explanation'],
-      difficulty: json['difficulty'],
-      topicTag: json['topicTag'],
+      difficulty: json['difficulty'] ?? 'mixed',
+      topicTag: json['topicTag'] ?? '',
+      asciiArt: json['asciiArt'],
     );
   }
 }
@@ -88,6 +91,7 @@ class Attempt {
   final int emptyCount;
   final DateTime finishedAt;
   final String? examTitle;
+  final List<dynamic>? answers;
 
   Attempt({
     required this.id,
@@ -98,6 +102,7 @@ class Attempt {
     required this.emptyCount,
     required this.finishedAt,
     this.examTitle,
+    this.answers,
   });
 
   factory Attempt.fromJson(Map<String, dynamic> json) {
@@ -110,6 +115,7 @@ class Attempt {
       emptyCount: json['emptyCount'] ?? 0,
       finishedAt: DateTime.parse(json['finishedAt']),
       examTitle: json['exam']?['title'],
+      answers: json['answers'],
     );
   }
 }

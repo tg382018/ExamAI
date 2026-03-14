@@ -134,9 +134,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Icons.help_outline, '${plan['questionCount']} Soru'),
                 const SizedBox(width: 12),
                 _buildPlanTag(
-                    Icons.timer_outlined, '${plan['durationMin']} Dakika'),
-                const SizedBox(width: 12),
-                _buildPlanTag(
                     Icons.draw_outlined,
                     plan['needsAscii'] == true
                         ? 'ASCII: Evet'
@@ -199,6 +196,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     );
                     // Refresh exams list to see the "QUEUED" exam
                     ref.read(examsProvider.notifier).fetchExams();
+                    // Clear the prompt input
+                    _promptController.clear();
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -1604,7 +1603,7 @@ class _ArchiveListItem extends StatelessWidget {
       ),
       child: InkWell(
         onTap: exam.status == ExamStatus.ready
-            ? () => context.push('/my-exams/${exam.id}')
+            ? () => _showDurationPicker(context, exam)
             : null,
         borderRadius: BorderRadius.circular(20),
         child: Row(
@@ -1658,7 +1657,7 @@ class _ArchiveListItem extends StatelessWidget {
                         if (exam.status == ExamStatus.ready &&
                             exam.lastScore != null) ...[
                           const SizedBox(width: 8),
-                          Text('%${exam.lastScore} Puan',
+                          Text('Başarı Oranın: %${exam.lastScore!.toInt()}',
                               style: const TextStyle(
                                   color: Color(0xFF10B981),
                                   fontSize: 12,
@@ -1671,6 +1670,137 @@ class _ArchiveListItem extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showDurationPicker(BuildContext context, Exam exam) {
+    int selectedDuration = 10;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => GlassCard(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Sınav Süresini Ayarla',
+                style: GoogleFonts.outfit(
+                  color: isDark ? Colors.white : Colors.black87,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Sınavı kaç dakikada tamamlamak istersin?',
+                style: GoogleFonts.outfit(
+                  color: isDark ? Colors.white60 : Colors.black45,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _DurationBtn(
+                    icon: Icons.remove,
+                    onTap: selectedDuration > 5
+                        ? () => setModalState(() => selectedDuration -= 5)
+                        : null,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Text(
+                      '$selectedDuration dk',
+                      style: GoogleFonts.outfit(
+                        color: isDark ? Colors.white : Colors.black87,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  _DurationBtn(
+                    icon: Icons.add,
+                    onTap: selectedDuration < 120
+                        ? () => setModalState(() => selectedDuration += 5)
+                        : null,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    context.push(
+                        '/my-exams/${exam.id}?duration=$selectedDuration');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Sınava Başla',
+                    style: GoogleFonts.outfit(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DurationBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+  const _DurationBtn({required this.icon, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final enabled = onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: enabled
+              ? (isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05))
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: enabled
+                ? (isDark
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.1))
+                : (isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.black.withOpacity(0.05)),
+          ),
+        ),
+        child: Icon(
+          icon,
+          color: enabled
+              ? (isDark ? Colors.white : Colors.black)
+              : (isDark ? Colors.white24 : Colors.black26),
         ),
       ),
     );

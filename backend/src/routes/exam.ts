@@ -27,7 +27,7 @@ router.post('/draft', async (req: AuthRequest, res: Response) => {
 // POST /exam — Confirm & queue exam generation
 router.post('/', async (req: AuthRequest, res: Response) => {
     try {
-        const { prompt, title, questionCount, durationMin, difficulty, outline } = req.body;
+        const { prompt, title, questionCount, durationMin, difficulty, outline, needsAscii } = req.body;
         if (!prompt || !title) return res.status(400).json({ error: 'prompt ve title zorunlu' });
         const exam = await prisma.exam.create({
             data: {
@@ -40,7 +40,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
                 difficulty: difficulty || 'mixed',
             },
         });
-        await examQueue.add('generate', { examId: exam.id, prompt, plan: { title, questionCount, durationMin, difficulty, outline } }, {
+        await examQueue.add('generate', { examId: exam.id, prompt, plan: { title, questionCount, durationMin, difficulty, outline, needsAscii: needsAscii ?? false } }, {
             attempts: 3,
             backoff: { type: 'exponential', delay: 10000 },
         });
@@ -84,7 +84,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
                     orderBy: { orderIndex: 'asc' },
                     select: {
                         id: true, orderIndex: true, text: true, options: true,
-                        difficulty: true, topicTag: true,
+                        difficulty: true, topicTag: true, asciiArt: true,
                         // correctOption & explanation hidden until attempt submitted
                     },
                 },
