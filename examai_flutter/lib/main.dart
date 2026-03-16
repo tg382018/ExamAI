@@ -3,24 +3,42 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'shared/theme/app_theme.dart';
 import 'core/api/router.dart';
 import 'core/providers/providers.dart';
 
+// Background message handler
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  debugPrint('Handling a background message: ${message.messageId}');
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Note: Firebase.initializeApp() will fail until google-services.json/GoogleService-Info.plist are added.
-  // We wrap it for now to allow development to proceed.
   try {
     await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   } catch (e) {
     debugPrint('Firebase init failed (expected if config missing): $e');
   }
 
+  final container = ProviderContainer();
+  // Initialize notification service if firebase is ready
+  try {
+    if (Firebase.apps.isNotEmpty) {
+      await container.read(notificationServiceProvider).init();
+    }
+  } catch (e) {
+    debugPrint('Notification service init failed: $e');
+  }
+
   runApp(
-    const ProviderScope(
-      child: ExamAIApp(),
+    UncontrolledProviderScope(
+      container: container,
+      child: const ExamAIApp(),
     ),
   );
 }

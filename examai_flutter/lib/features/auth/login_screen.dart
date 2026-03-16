@@ -53,9 +53,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       if (mounted) context.go('/my-exams');
     } else {
       if (mounted) {
-        final error = ref.read(authProvider).error;
-        if (error != null && error.contains('E-posta doğrulanmamış')) {
+        final error = ref.read(authProvider).error ?? '';
+
+        if (error.contains('E-posta doğrulanmamış')) {
           _showError(l10n.loginErrorUnverified);
+        } else if (error.toLowerCase().contains('connection error') ||
+            error.toLowerCase().contains('socketexception') ||
+            error.toLowerCase().contains('connection refused')) {
+          _showError(
+              'Sunucuya bağlanılamadı. Lütfen internet bağlantınızı ve sunucu durumunu kontrol edin.');
         } else {
           _showError(l10n.loginErrorInvalid);
         }

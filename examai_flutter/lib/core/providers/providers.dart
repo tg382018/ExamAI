@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../services/preferences_service.dart';
+import '../services/notification_service.dart';
 import 'package:dio/dio.dart';
 
 class AuthState {
@@ -29,13 +30,20 @@ final onboardingSeenProvider = FutureProvider<bool>((ref) {
 
 final apiServiceProvider = Provider((ref) => ApiService());
 
+final notificationServiceProvider =
+    Provider((ref) => NotificationService(ref.read(apiServiceProvider)));
+
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(ref.read(apiServiceProvider));
+  return AuthNotifier(
+    ref.read(apiServiceProvider),
+    ref.read(notificationServiceProvider),
+  );
 });
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final ApiService _api;
-  AuthNotifier(this._api) : super(AuthState());
+  final NotificationService _notifications;
+  AuthNotifier(this._api, this._notifications) : super(AuthState());
 
   Future<bool> login(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
@@ -45,6 +53,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: User.fromJson(data['user']),
         isLoading: false,
       );
+      // Link the device token to this user
+      await _notifications.updateToken();
       return true;
     } on DioException catch (e) {
       final msg = e.response?.data?['error'] ?? e.toString();
@@ -84,6 +94,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: User.fromJson(data['user']),
         isLoading: false,
       );
+      // Link the device token to this user
+      await _notifications.updateToken();
       return true;
     } on DioException catch (e) {
       final msg = e.response?.data?['error'] ?? e.toString();

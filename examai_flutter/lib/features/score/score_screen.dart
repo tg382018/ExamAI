@@ -51,13 +51,17 @@ class ScoreScreen extends ConsumerWidget {
                     children: [
                       Text(
                         '%${score.toInt()}',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white),
+                            color: Theme.of(context).colorScheme.onSurface),
                       ),
-                      const Text('Başarı',
-                          style: TextStyle(color: Colors.white60)),
+                      Text('Başarı',
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.6))),
                     ],
                   ),
                   circularStrokeCap: CircularStrokeCap.round,
@@ -147,7 +151,12 @@ class _ResultStat extends StatelessWidget {
                 fontSize: 24, fontWeight: FontWeight.bold, color: color)),
         const SizedBox(height: 4),
         Text(label,
-            style: const TextStyle(color: Colors.white60, fontSize: 14)),
+            style: TextStyle(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.6),
+                fontSize: 14)),
       ],
     );
   }
@@ -197,12 +206,20 @@ class _ActionCard extends StatelessWidget {
                             fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
                     Text(subtitle,
-                        style: const TextStyle(
-                            fontSize: 13, color: Colors.white60)),
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6))),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.white24),
+              Icon(Icons.chevron_right,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.2)),
             ],
           ),
         ),

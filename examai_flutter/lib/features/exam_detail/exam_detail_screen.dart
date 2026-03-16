@@ -117,7 +117,12 @@ class _ExamDetailScreenState extends ConsumerState<ExamDetailScreen> {
               child: Text(
                 _formatTime(_secondsRemaining),
                 style: TextStyle(
-                  color: _secondsRemaining < 60 ? Colors.red : Colors.white,
+                  color: _secondsRemaining < 60
+                      ? Colors.red
+                      : Theme.of(context).appBarTheme.foregroundColor ??
+                          (Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87),
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
                 ),
@@ -134,7 +139,10 @@ class _ExamDetailScreenState extends ConsumerState<ExamDetailScreen> {
                 value: (questions.isEmpty)
                     ? 0
                     : (_currentIndex + 1) / questions.length,
-                backgroundColor: Colors.white10,
+                backgroundColor: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.1),
               ),
               Expanded(
                 child: PageView.builder(
@@ -233,9 +241,12 @@ class _QuestionView extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.black26,
+                  color: isDark
+                      ? Colors.white10
+                      : Colors.black.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white10),
+                  border: Border.all(
+                      color: isDark ? Colors.white10 : Colors.black12),
                 ),
                 child: Text(
                   question.asciiArt!,
@@ -270,7 +281,10 @@ class _QuestionView extends StatelessWidget {
                             .colorScheme
                             .primary
                             .withValues(alpha: 0.1)
-                        : Colors.white.withValues(alpha: 0.05),
+                        : Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected
@@ -287,14 +301,22 @@ class _QuestionView extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: isSelected
                               ? Theme.of(context).colorScheme.primary
-                              : Colors.white10,
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
                           child: Text(
                             String.fromCharCode(65 + i),
                             style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.white60,
+                              color: isSelected
+                                  ? Colors.white
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.7),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -305,7 +327,9 @@ class _QuestionView extends StatelessWidget {
                         child: MathText(
                           question.options[i].substring(3), // Skip "A) "
                           style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.white70,
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context).colorScheme.onSurface,
                             fontSize: 16,
                           ),
                         ),

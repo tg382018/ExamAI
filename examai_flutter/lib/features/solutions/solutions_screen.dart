@@ -131,9 +131,14 @@ class _SolutionCardState extends State<_SolutionCard> {
                             child: Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Colors.black26,
+                                color: isDark
+                                    ? Colors.white10
+                                    : Colors.black.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.white10),
+                                border: Border.all(
+                                    color: isDark
+                                        ? Colors.white10
+                                        : Colors.black12),
                               ),
                               child: Text(
                                 widget.question.asciiArt!,
@@ -164,17 +169,29 @@ class _SolutionCardState extends State<_SolutionCard> {
                     _isExpanded
                         ? Icons.keyboard_arrow_up
                         : Icons.keyboard_arrow_down,
-                    color: Colors.white24,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.2),
                   ),
                 ],
               ),
               if (_isExpanded) ...[
                 const SizedBox(height: 20),
-                const Divider(color: Colors.white10),
+                Divider(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.1)),
                 const SizedBox(height: 12),
                 if (isAnswered) ...[
-                  const Text('Senin Cevabın:',
-                      style: TextStyle(color: Colors.white60, fontSize: 13)),
+                  Text('Senin Cevabın:',
+                      style: TextStyle(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.6),
+                          fontSize: 13)),
                   const SizedBox(height: 4),
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -206,8 +223,13 @@ class _SolutionCardState extends State<_SolutionCard> {
                   ),
                   const SizedBox(height: 16),
                 ],
-                const Text('Doğru Cevap:',
-                    style: TextStyle(color: Colors.white60, fontSize: 13)),
+                Text('Doğru Cevap:',
+                    style: TextStyle(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.6),
+                        fontSize: 13)),
                 const SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -234,12 +256,22 @@ class _SolutionCardState extends State<_SolutionCard> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text('Çözüm Açıklaması:',
-                    style: TextStyle(color: Colors.white60, fontSize: 13)),
+                Text('Çözüm Açıklaması:',
+                    style: TextStyle(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.6),
+                        fontSize: 13)),
                 const SizedBox(height: 8),
                 MathText(
                   widget.question.explanation ?? 'Açıklama mevcut değil.',
-                  style: const TextStyle(height: 1.5, color: Colors.white70),
+                  style: TextStyle(
+                      height: 1.5,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.8)),
                 ),
               ],
             ],
