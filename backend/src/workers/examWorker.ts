@@ -36,23 +36,42 @@ export function startWorker() {
                 // 3. Save questions to DB
                 await prisma.question.createMany({
                     data: questions.map(q => {
-                        // Find index of option containing " (DC)"
-                        const correctIndex = q.options.findIndex(opt => opt.includes(' (DC)'));
-                        // Clean all options of the " (DC)" tag and null bytes
-                        const cleanedOptions = q.options.map(opt => sanitizeString(opt.replace(' (DC)', '').trim()) as string);
+                        let correctIndex: number | null = null;
+                        let correctAnswer: string | null = null;
+                        let cleanedOptions = q.options.map(opt => sanitizeString(opt) as string);
+
+                        if (q.type === 'MULTIPLE_CHOICE') {
+                            const foundIndex = q.options.findIndex(opt => opt.includes(' (DC)'));
+                            correctIndex = foundIndex >= 0 ? foundIndex : 0;
+                            // Clean the " (DC)" tag and also stripping "A) ", "1- ", etc. labels if LLM included them
+                            cleanedOptions = q.options.map(opt => {
+                                let s = opt.replace(' (DC)', '').trim();
+                                // Remove leading labels like "A) ", "B- ", "1. "
+                                s = s.replace(/^[A-Ea-e1-5][\)\-\.\s]+\s*/, '');
+                                return sanitizeString(s) as string;
+                            });
+                        } else if (q.type === 'TRUE_FALSE') {
+                            correctIndex = q.correctOption ?? 0;
+                            correctAnswer = q.correctAnswer ?? 'Doğru';
+                        } else if (q.type === 'OPEN_ENDED') {
+                            correctAnswer = sanitizeString(q.correctAnswer) || '';
+                            cleanedOptions = []; // No options for open-ended
+                        }
 
                         return {
                             examId,
+                            type: q.type,
                             orderIndex: q.orderIndex,
                             text: sanitizeString(q.text) as string,
                             options: cleanedOptions,
-                            correctOption: correctIndex >= 0 ? correctIndex : 0,
+                            correctOption: correctIndex,
+                            correctAnswer: correctAnswer,
                             explanation: sanitizeString(q.explanation) as string,
                             difficulty: sanitizeString(q.difficulty) as string,
                             topicTag: sanitizeString(q.topicTag) as string,
                             asciiArt: sanitizeString(q.asciiArt),
                         };
-                    }),
+                    }) as any,
                 });
 
                 // 4. Mark as READY + save summary + sync actual questionCount

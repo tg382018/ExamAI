@@ -27,7 +27,7 @@ router.post('/draft', async (req: AuthRequest, res: Response) => {
 // POST /exam — Confirm & queue exam generation
 router.post('/', async (req: AuthRequest, res: Response) => {
     try {
-        const { prompt, title, questionCount, durationMin, difficulty, outline, needsAscii } = req.body;
+        const { prompt, title, questionCount, durationMin, difficulty, outline, needsAscii, allowedTypes } = req.body;
         if (!prompt || !title) return res.status(400).json({ error: 'prompt ve title zorunlu' });
         const exam = await prisma.exam.create({
             data: {
@@ -40,7 +40,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
                 difficulty: difficulty || 'mixed',
             },
         });
-        await examQueue.add('generate', { examId: exam.id, prompt, plan: { title, questionCount, durationMin, difficulty, outline, needsAscii: needsAscii ?? false } }, {
+        await examQueue.add('generate', { examId: exam.id, prompt, plan: { title, questionCount, durationMin, difficulty, outline, needsAscii: needsAscii ?? false, allowedTypes: allowedTypes ?? ['MULTIPLE_CHOICE'] } }, {
             attempts: 3,
             backoff: { type: 'exponential', delay: 10000 },
         });
@@ -83,7 +83,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
                 questions: {
                     orderBy: { orderIndex: 'asc' },
                     select: {
-                        id: true, orderIndex: true, text: true, options: true,
+                        id: true, type: true, orderIndex: true, text: true, options: true,
                         difficulty: true, topicTag: true, asciiArt: true,
                         // correctOption & explanation hidden until attempt submitted
                     },
@@ -132,44 +132,99 @@ router.get('/:id/summary', async (req: AuthRequest, res: Response) => {
     }
 });
 
+import { gradeOpenEndedQuestions } from '../services/llm';
+
+// ... (existing code)
+
 // POST /exams/:id/attempts — Submit answers
 router.post('/:id/attempts', async (req: AuthRequest, res: Response) => {
     try {
         const { answers, startedAt } = req.body;
-        // answers: [{ questionId, selectedOption }]
+        console.log(`[Attempt] Submitting for exam ${req.params.id}. Answers: ${JSON.stringify(answers)}`);
+        // answers: [{ questionId, selectedOption: number | string | null }]
         const questions = await prisma.question.findMany({ where: { examId: req.params.id as string } });
         if (questions.length === 0) return res.status(400).json({ error: 'Sınav soruları bulunamadı' });
 
-        let correct = 0, wrong = 0, empty = 0;
+        let totalWeight = questions.length;
+        let earnedPoints = 0;
+        let correctCount = 0, wrongCount = 0, emptyCount = 0;
+
+        const openEndedData: { questionId: string; questionText: string; studentAnswer: string; correctAnswerCriteria: string }[] = [];
+
         for (const q of questions) {
-            const answer = (answers as { questionId: string; selectedOption: number | null }[])
+            const answer = (answers as { questionId: string; selectedOption: any }[])
                 .find(a => a.questionId === q.id);
-            if (!answer || answer.selectedOption === null || answer.selectedOption === undefined) {
-                empty++;
-            } else if (answer.selectedOption === q.correctOption) {
-                correct++;
-            } else {
-                wrong++;
+
+            if (!answer || answer.selectedOption === null || answer.selectedOption === undefined || answer.selectedOption === '') {
+                emptyCount++;
+                continue;
+            }
+
+            if (q.type === 'MULTIPLE_CHOICE' || q.type === 'TRUE_FALSE') {
+                if (answer.selectedOption === q.correctOption) {
+                    earnedPoints += 1;
+                    correctCount++;
+                } else {
+                    wrongCount++;
+                }
+            } else if (q.type === 'OPEN_ENDED') {
+                // Normalize curly quotes and trim for better AI matching
+                const normalizedAnswer = answer.selectedOption.toString()
+                    .replace(/[‘’]/g, "'")
+                    .replace(/[“”]/g, '"')
+                    .trim();
+
+                openEndedData.push({
+                    questionId: q.id,
+                    questionText: q.text,
+                    studentAnswer: normalizedAnswer,
+                    correctAnswerCriteria: q.correctAnswer || '',
+                });
             }
         }
-        const score = Math.round((correct / questions.length) * 100 * 10) / 10;
+
+        console.log(`[Attempt] Open-ended questions found to grade: ${openEndedData.length}`);
+
+        // Call AI for open-ended questions
+        const enrichedAnswers = [...(answers as any[])];
+
+        if (openEndedData.length > 0) {
+            const aiResults = await gradeOpenEndedQuestions(openEndedData);
+            console.log('[Attempt] AI Grading results received:', JSON.stringify(aiResults));
+            for (const qId in aiResults) {
+                const result = aiResults[qId];
+                earnedPoints += (result.score || 0) / 100;
+
+                // Merge AI results back into the answer objects
+                const targetIdx = enrichedAnswers.findIndex(a => a.questionId === qId);
+                if (targetIdx !== -1) {
+                    enrichedAnswers[targetIdx].aiScore = result.score;
+                    enrichedAnswers[targetIdx].aiFeedback = result.feedback;
+                }
+
+                if ((result.score || 0) >= 50) correctCount++;
+                else wrongCount++;
+            }
+        }
+
+        const score = Math.round((earnedPoints / totalWeight) * 100 * 10) / 10;
 
         const attempt = await prisma.attempt.create({
             data: {
                 examId: req.params.id as string,
                 userId: req.userId!,
-                answers,
+                answers: enrichedAnswers,
                 score,
-                correctCount: correct,
-                wrongCount: wrong,
-                emptyCount: empty,
+                correctCount,
+                wrongCount,
+                emptyCount,
                 startedAt: startedAt ? new Date(startedAt) : new Date(),
                 finishedAt: new Date(),
             },
         });
-        return res.status(201).json({ attemptId: attempt.id, score, correctCount: correct, wrongCount: wrong, emptyCount: empty });
+        return res.status(201).json({ attemptId: attempt.id, score, correctCount, wrongCount, emptyCount });
     } catch (err) {
-        console.error('[Attempt]', err);
+        console.error('[Attempt Submission Error]:', err);
         return res.status(500).json({ error: 'Sunucu hatası' });
     }
 });

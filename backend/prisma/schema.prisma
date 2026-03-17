@@ -38,17 +38,25 @@ model Exam {
 }
 
 model Question {
-  id            String @id @default(uuid())
+  id            String       @id @default(uuid())
   examId        String
+  type          QuestionType @default(MULTIPLE_CHOICE)
   orderIndex    Int
   text          String
-  options       Json
-  correctOption Int
+  options       Json // Empty for OPEN_ENDED, [True, False] for TRUE_FALSE
+  correctOption Int? // Index for MCQ/TF
+  correctAnswer String? // Text for OPEN_ENDED
   explanation   String
-  difficulty    String @default("medium")
-  topicTag      String @default("")
+  difficulty    String       @default("medium")
+  topicTag      String       @default("")
   asciiArt      String?
-  exam          Exam   @relation(fields: [examId], references: [id])
+  exam          Exam         @relation(fields: [examId], references: [id])
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  OPEN_ENDED
 }
 
 model Attempt {

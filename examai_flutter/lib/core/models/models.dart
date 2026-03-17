@@ -44,12 +44,16 @@ class Exam {
   }
 }
 
+enum QuestionType { multiple_choice, true_false, open_ended }
+
 class Question {
   final String id;
+  final QuestionType type;
   final int orderIndex;
   final String text;
   final List<String> options;
   final int? correctOption;
+  final String? correctAnswer;
   final String? explanation;
   final String difficulty;
   final String topicTag;
@@ -57,10 +61,12 @@ class Question {
 
   Question({
     required this.id,
+    required this.type,
     required this.orderIndex,
     required this.text,
     required this.options,
     this.correctOption,
+    this.correctAnswer,
     this.explanation,
     required this.difficulty,
     required this.topicTag,
@@ -70,10 +76,15 @@ class Question {
   factory Question.fromJson(Map<String, dynamic> json) {
     return Question(
       id: json['id'],
+      type: QuestionType.values.firstWhere(
+        (e) => e.name == json['type']?.toString().toLowerCase(),
+        orElse: () => QuestionType.multiple_choice,
+      ),
       orderIndex: json['orderIndex'] ?? 0,
       text: json['text'] ?? '',
       options: List<String>.from(json['options'] ?? []),
       correctOption: json['correctOption'],
+      correctAnswer: json['correctAnswer'],
       explanation: json['explanation'],
       difficulty: json['difficulty'] ?? 'mixed',
       topicTag: json['topicTag'] ?? '',

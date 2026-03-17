@@ -47,37 +47,59 @@ class AISummaryScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
                 MarkdownBody(
                   data: summary,
-                  styleSheet: MarkdownStyleSheet(
-                    p: const TextStyle(
-                        fontSize: 16, height: 1.6, color: Colors.white70),
-                    h1: const TextStyle(
+                  styleSheet:
+                      MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                    p: TextStyle(
+                        fontSize: 16,
+                        height: 1.6,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.7)),
+                    h1: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white),
-                    h2: const TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface),
+                    h2: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white),
-                    listBullet:
-                        const TextStyle(fontSize: 16, color: Colors.white70),
+                        color: Theme.of(context).colorScheme.onSurface),
+                    listBullet: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withValues(alpha: 0.7)),
                   ),
                 ),
                 const SizedBox(height: 40),
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color:
-                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.white54),
+                      Icon(Icons.info_outline,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.54)),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Text(
                           'Bu özet, sınavdaki sorular ve kapsanan konular baz alınarak yapay zeka tarafından üretilmiştir.',
-                          style: TextStyle(color: Colors.white54, fontSize: 13),
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.54),
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],

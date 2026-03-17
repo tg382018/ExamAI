@@ -11,6 +11,7 @@ export interface DraftPlan {
     title: string;
     outline: string[];
     needsAscii: boolean;
+    allowedTypes: string[]; // ['MULTIPLE_CHOICE', 'TRUE_FALSE', 'OPEN_ENDED']
 }
 
 /**
@@ -29,8 +30,9 @@ KURALLAR:
 1. Talebin sınav oluşturma ile bir ilgisi yoksa veya bilgiler bir sınav oluşturmak için (ders adı veya konu eksikliği gibi) çok yetersizse, "isValid": false dön.
 2. "isValid": false durumunda, "error" kısmına neden sınav oluşturulamayacağını açıklayan nazik bir Türkçe mesaj yaz.
 3. Kullanıcı 15'ten fazla soru isterse, soru sayısını otomatik olarak 15 ile sınırla. Soru sayısı belirtilmemişse varsayılan olarak 10 yap.
-4. "needsAscii" alanı: Eğer sınav konusu geometri, fizik veya grafik gerektiren bir konuysa (çizim gerektiriyorsa) true, aksi halde false dön.
-5. Sınavı henüz oluşturma, sadece teknik detayları içeren planı döndür.
+4. "allowedTypes" alanı: Kullanıcı talebinde "test", "çoktan seçmeli", "açık uçlu", "klasik", "doğru yanlış" gibi ifadeler geçiyorsa bunlara uygun tipleri dizi olarak dön. Belirtilmemişse varsayılan olarak ["MULTIPLE_CHOICE"] dön.
+   Tipler: "MULTIPLE_CHOICE", "TRUE_FALSE", "OPEN_ENDED"
+5. "needsAscii" alanı: Eğer sınav konusu geometri, fizik veya grafik gerektiren bir konuysa (çizim gerektiriyorsa) true, aksi halde false dön.
 6. Yalnızca JSON döndür.
 
 DÖNÜŞ FORMATI:
@@ -42,6 +44,7 @@ DÖNÜŞ FORMATI:
   "questionCount": number,
   "difficulty": "Kolay|Orta|Zor",
   "outline": ["konu başlığı 1", "konu başlığı 2"],
+  "allowedTypes": ["MULTIPLE_CHOICE", "..."],
   "needsAscii": boolean
 }`,
             },
@@ -58,9 +61,12 @@ DÖNÜŞ FORMATI:
 
 export interface GeneratedQuestion {
     orderIndex: number;
+    type: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'OPEN_ENDED';
     text: string;
     explanation: string;
-    options: string[];
+    options: string[]; // MCQ için 5 şık, TF için ["Doğru", "Yanlış"], OPEN_ENDED için boş []
+    correctOption?: number; // MCQ/TF için index
+    correctAnswer?: string; // OPEN_ENDED için anahtar kelimeler/kısa cevap
     difficulty: string;
     topicTag: string;
     asciiArt?: string;
@@ -75,48 +81,45 @@ export async function generateFullExam(
 ): Promise<{ questions: GeneratedQuestion[]; summary: string }> {
     const questionsCompletion = await openai.chat.completions.create({
         model: process.env.OPENAI_MODEL || 'gpt-4o',
-        temperature: 0.4, // Increased temperature for better topic diversity and adherence
+        temperature: 0.4,
         messages: [
             {
                 role: 'system',
-                content: `Sen dünyanın en titiz, en dikkatli ve matematiksel/mantıksal hata yapması imkansız olan bir eğitimcisin. Ürettiğin her soruyu defalarca kontrol eden bir algoritma gibi çalışmalısın.
+                content: `Sen dünyanın en titiz eğitimcisisin. Aşağıdaki plana göre ${plan.questionCount} adet soru üret.
+
+PLANDAKİ SORU TİPLERİ: ${plan.allowedTypes.join(', ')}
 
 KRİTİK TALİMATLAR:
-1. Kesinlikle tam olarak ${plan.questionCount} adet soru üret.
-2. ÖNCE ÇÖZ, SONRA ŞIKLARLI OLUŞTUR: Her soru için önce 'explanation' alanını doldur. Soruyu adım adım çöz ve kesin sonucu bul. 
-3. ŞIKLARIN TUTARLILIĞI: Bulduğun kesin sonuç, 'options' dizisindeki 5 şıktan biri olmak ZORUNDADIR. Eğer bulduğun sonuç şıklarda yoksa soruyu baştan yaz.
-4. DOĞRU ŞIKKI ETİKETLEME: 'options' listesi içindeki doğru seçeneğin sonuna boşluk bırakarak " (DC)" ekle. 
-   Örnek: "options": ["A) 10", "B) 20 (DC)", "C) 30", "D) 40", "E) 50"]
-5. MATEMATİKSEL FORMAT (ÖNEMLİ): Matematiksel formülleri, denklemleri, kesirleri ve üslü sayıları yazarken MUTLAKA standart LaTeX formatını kullan. JSON formatını bozmamak için backslash sınırlarına dikkat et. Satır içi formüller için her zaman $ ve $ kullan (örneğin: $x^2 + y^2 = z^2$ veya $\\frac{1}{2}$). Ayrı satırda büyük formüller için $$ ve $$ kullan (örneğin: $$a^2 + b^2 = c^2$$). Asla düz metin ile x^2 yazma, daima $ içine al. (Kesinlikle \\( veya \\[ kullanma!)
-6. YASAKLAR:
-   - Şıklarda 'options' içinde formül varsa, formülü de $ $ arasına al.
-   - 'explanation' metninin içine asla " (DC)" yazma. Bu etiket sadece ve sadece 'options' dizisindeki tek bir şıkta olmalı.
-   - Bulduğun sonuçtan farklı bir şıkkı asla (DC) olarak işaretleme.
-   - İşlem hatası yapma. (Örn: 7+24+25 toplamını 56 olarak bulmalısın).
-7. Şıklar makul ve çeldiriciler kuvvetli olmalıdır.
-8. KONUYA BAĞLILIK: Sadece ve sadece '${plan.outline.join(', ')}' konuları ile ilgili soru üret. Dışına çıkma.${plan.needsAscii ? '\n9. GEOMETRİK ŞEKİL ZORUNLULUĞU (HAYATİ ÖNEMDE): Bu bir GEOMETRİ sınavıdır. Sorduğun HER SORU için mutlaka "asciiArt" alanına bir şekil çizmelisiniz. Şekil içermeyen bir soru KESİNLİKLE KABUL EDİLEMEZ. Soru metni "Yukarıdaki şekilde...", "Yandaki üçgende..." gibi ifadelerle bu şekle atıfta bulunmalıdır. \n   - Şekil çizerken JSON formatını bozmamak için \\ (backslash) ASLA KULLANMA. \n   - Sadece şu karakterleri kullan: | (düz çizgi), - (yatay), / (eğik), _ (alt çizgi), . (nokta), + (köşe), A, B, C, D (köşe isimleri).\n   - "asciiArt" alanı asla null olmamalı, mutlaka en az 3-4 satırlık anlamlı bir geometrik şekil içermelidir.' : ''}
+1. SORU TİPLERİNE GÖRE FORMAT:
+   - MULTIPLE_CHOICE: 5 şıklı klasik test. Doğru şıkkın sonuna " (DC)" ekle.
+   - TRUE_FALSE: "options" alanı ["Doğru", "Yanlış"] olsun. "correctOption" 0 (Doğru) veya 1 (Yanlış) değerini alsın. "correctAnswer" alanına "Doğru" veya "Yanlış" yaz.
+   - OPEN_ENDED: "options" boş [] olsun. "correctOption" null kalsın. "correctAnswer" alanına sorunun beklenen doğru cevabını veya anahtar kelimelerini yaz.
+2. MATEMATİKSEL FORMAT: Standart LaTeX kullan ($ $ veya $$ $$).
+3. Karışık tip istenmişse, soruları dengeli dağıt veya kullanıcının özel sayısını (eğer belirtmişse) dikkate al.
 
-Lütfen her soru için şu verileri JSON formatında üret:
-- orderIndex: Sorunun sırası
-- text: Soru metni
-- explanation: Detaylı ve hatasız çözüm anlatımı (Önce burayı doldur ki mantığın otursun)
-- options: 5 adet şık (Doğru olanın sonuna " (DC)" ekle)
-- difficulty: Kolay|Orta|Zor
-- topicTag: Konu başlığı${plan.needsAscii ? '\n- asciiArt: Soruya ait ASCII çizimi (MUTLAKA DOLDUR)' : ''}
-
-Format (JSON):
+JSON FORMATI:
 {
   "questions": [
     {
-      "orderIndex": 0,
+      "orderIndex": number,
+      "type": "MULTIPLE_CHOICE | TRUE_FALSE | OPEN_ENDED",
       "text": "...",
       "explanation": "...",
-      "options": ["A) ...", "B) ... (DC)", "C) ...", "D) ...", "E) ..."],
+      "options": ["A) ...", "B) ... (DC)", ...],
+      "correctOption": number | null,
+      "correctAnswer": "...", 
       "difficulty": "...",
-      "topicTag": "..."${plan.needsAscii ? ',\n      "asciiArt": "... ASCII GEOMETRİ ŞEKLİ BURAYA ..."' : ''}
+      "topicTag": "..."
     }
   ]
-}`,
+}
+
+ÖNEMLİ: "correctAnswer" alanı, açık uçlu sorular için tüm kabul edilebilir varyasyonları veya detaylı bir değerlendirme anahtarını içermelidir (Örn: "Nokta veya 'da eki veya kesme işareti ile ayrılmış herhangi bir doğru ek").
+`,
+            },
+            {
+                role: 'user',
+                content: `Prompt: ${prompt}\nPlan: ${JSON.stringify(plan)}`,
             },
         ],
         response_format: { type: 'json_object' },
@@ -136,9 +139,7 @@ Format (JSON):
             },
             {
                 role: 'user',
-                content: `Sınav: ${plan.title}
-Konular: ${plan.outline.join(', ')}
-Bu sınav için öğrenciye yönelik bir çalışma özeti yaz.`,
+                content: `Sınav: ${plan.title}\nKonular: ${plan.outline.join(', ')}\nBu sınav için öğrenciye yönelik bir çalışma özeti yaz.`,
             },
         ],
     });
@@ -147,4 +148,62 @@ Bu sınav için öğrenciye yönelik bir çalışma özeti yaz.`,
         questions: questionsRaw.questions as GeneratedQuestion[],
         summary: summaryCompletion.choices[0].message.content || '',
     };
+}
+
+export interface GradingResult {
+    [questionId: string]: {
+        score: number; // 0-100
+        feedback: string;
+    };
+}
+
+/**
+ * Grade open-ended answers using AI.
+ */
+export async function gradeOpenEndedQuestions(
+    gradingData: {
+        questionId: string;
+        questionText: string;
+        studentAnswer: string;
+        correctAnswerCriteria: string;
+    }[]
+): Promise<GradingResult> {
+    if (gradingData.length === 0) return {};
+
+    const completion = await openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4o',
+        temperature: 0.3,
+        messages: [
+            {
+                role: 'system',
+                content: `Sen bir öğretmensin. Öğrencilerin açık uçlu sorulara verdiği cevapları, sorunun kendisi ve beklenen doğru cevap kriterleri ile karşılaştırarak puanlayacaksın.
+                
+KRALLAR:
+1. Her soru için 0 ile 100 arasında bir tam sayı puan ver.
+2. Anlam olarak doğruysa tam puan ver, eksikse kısmi puan ver, tamamen yanlışsa 0 ver.
+3. Kısa ve yapıcı bir Türkçe geri bildirim yaz.
+4. Yalnızca JSON döndür.
+
+DÖNÜŞ FORMATI:
+{
+  "SORU_ID_1": { "score": 85, "feedback": "..." },
+  "SORU_ID_2": { "score": 40, "feedback": "..." }
+}
+Cevap olarak YALNIZCA bu yapıda JSON dön. Anahtarlar (keys) mutlaka size verilen "questionId" değerleri olmalıdır.
+
+EK TALİMATLAR:
+1. Kesme işaretlerindeki farklılıkları ( ‘ , ’ , ' ) veya tırnak işaretlerini hata olarak görme, bunları aynı kabul et.
+2. Öğrenci eğer bir noktalama işaretini hem simge olarak (.) hem de yazı olarak (Nokta) belirtmişse bunu doğru kabul et.
+3. Büyük/küçük harf duyarlılığını (soru özelinde kritik değilse) göz ardı et.`,
+            },
+            {
+                role: 'user',
+                content: JSON.stringify(gradingData),
+            },
+        ],
+        response_format: { type: 'json_object' },
+    });
+
+    const raw = JSON.parse(completion.choices[0].message.content || '{}');
+    return raw as GradingResult;
 }
