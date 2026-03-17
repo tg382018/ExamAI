@@ -520,6 +520,102 @@ abstract class AppLocalizations {
   /// **'Add subtopic...'**
   String get dashboardFilterSubtopicHint;
 
+  /// No description provided for @dashboardFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get dashboardFilterAll;
+
+  /// No description provided for @levelElementary.
+  ///
+  /// In en, this message translates to:
+  /// **'Elementary'**
+  String get levelElementary;
+
+  /// No description provided for @levelMiddle.
+  ///
+  /// In en, this message translates to:
+  /// **'Middle School'**
+  String get levelMiddle;
+
+  /// No description provided for @levelHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High School'**
+  String get levelHigh;
+
+  /// No description provided for @levelUniversity.
+  ///
+  /// In en, this message translates to:
+  /// **'University'**
+  String get levelUniversity;
+
+  /// No description provided for @levelCollege.
+  ///
+  /// In en, this message translates to:
+  /// **'College'**
+  String get levelCollege;
+
+  /// No description provided for @levelProfessional.
+  ///
+  /// In en, this message translates to:
+  /// **'Professional'**
+  String get levelProfessional;
+
+  /// No description provided for @typeMCQ.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple Choice'**
+  String get typeMCQ;
+
+  /// No description provided for @typeOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Ended'**
+  String get typeOpen;
+
+  /// No description provided for @typeTF.
+  ///
+  /// In en, this message translates to:
+  /// **'True/False'**
+  String get typeTF;
+
+  /// No description provided for @typeMixed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed'**
+  String get typeMixed;
+
+  /// No description provided for @dashboardFilterSubtopic.
+  ///
+  /// In en, this message translates to:
+  /// **'Sub-topic'**
+  String get dashboardFilterSubtopic;
+
+  /// No description provided for @dashboardFilterSubtopicSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Sub-topic'**
+  String get dashboardFilterSubtopicSelect;
+
+  /// No description provided for @dashboardFilterSubtopicOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get dashboardFilterSubtopicOther;
+
+  /// No description provided for @dashboardFilterTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Title (e.g.: Exponentials)'**
+  String get dashboardFilterTitleHint;
+
+  /// No description provided for @dashboardFilterExamTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Exam Template'**
+  String get dashboardFilterExamTemplate;
+
   /// No description provided for @dashboardGenerateBtn.
   ///
   /// In en, this message translates to:
@@ -561,6 +657,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Passive'**
   String get dashboardFreqPassive;
+
+  /// No description provided for @dashboardAutoDayMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Day {day}'**
+  String dashboardAutoDayMonthly(int day);
+
+  /// No description provided for @dayMon.
+  ///
+  /// In en, this message translates to:
+  /// **'Mon'**
+  String get dayMon;
+
+  /// No description provided for @dayTue.
+  ///
+  /// In en, this message translates to:
+  /// **'Tue'**
+  String get dayTue;
+
+  /// No description provided for @dayWed.
+  ///
+  /// In en, this message translates to:
+  /// **'Wed'**
+  String get dayWed;
+
+  /// No description provided for @dayThu.
+  ///
+  /// In en, this message translates to:
+  /// **'Thu'**
+  String get dayThu;
+
+  /// No description provided for @dayFri.
+  ///
+  /// In en, this message translates to:
+  /// **'Fri'**
+  String get dayFri;
+
+  /// No description provided for @daySat.
+  ///
+  /// In en, this message translates to:
+  /// **'Sat'**
+  String get daySat;
+
+  /// No description provided for @daySun.
+  ///
+  /// In en, this message translates to:
+  /// **'Sun'**
+  String get daySun;
 
   /// No description provided for @dashboardAutoDay.
   ///

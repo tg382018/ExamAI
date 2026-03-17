@@ -197,75 +197,149 @@ class AppLocalizationsAr extends AppLocalizations {
   String get commonClose => 'إغلاق';
 
   @override
-  String get dashboardGreeting => 'Welcome Back,';
+  String get dashboardGreeting => 'مرحبًا بعودتك،';
 
   @override
-  String get dashboardCreateTitle => 'Create Exam';
+  String get dashboardCreateTitle => 'إنشاء امتحان';
 
   @override
-  String get dashboardTabPrompt => 'AI Prompt';
+  String get dashboardTabPrompt => 'أمر الذكاء الاصطناعي';
 
   @override
-  String get dashboardTabFilter => 'Filter & Create';
+  String get dashboardTabFilter => 'تصفية وإنشاء';
 
   @override
   String get dashboardPromptHint =>
-      '✨ e.g.: Prepare a 5-question, thought-provoking test on Quantum Physics...';
+      '✨ مثال: أعد اختبارًا تحفيزيًا من 5 أسئلة حول فيزياء الكم...';
 
   @override
-  String get dashboardFilterLevel => 'Level';
+  String get dashboardFilterLevel => 'المستوى';
 
   @override
-  String get dashboardFilterTopic => 'Topic';
+  String get dashboardFilterTopic => 'الموضوع';
 
   @override
-  String get dashboardFilterCount => 'Count';
+  String get dashboardFilterCount => 'العدد';
 
   @override
-  String get dashboardFilterType => 'Type';
+  String get dashboardFilterType => 'النوع';
 
   @override
-  String get dashboardFilterSubtopicHint => 'Add subtopic...';
+  String get dashboardFilterSubtopicHint => 'إضافة موضوع فرعي...';
 
   @override
-  String get dashboardGenerateBtn => 'Create Exam';
+  String get dashboardFilterAll => 'الكل';
 
   @override
-  String get dashboardAutoTitle => 'Auto Pilot';
+  String get levelElementary => 'المستوى الابتدائي';
 
   @override
-  String get dashboardAutoDesc => 'How often should AI test you?';
+  String get levelMiddle => 'المرحلة المتوسطة';
 
   @override
-  String get dashboardFreqDaily => 'Daily';
+  String get levelHigh => 'المرحلة الثانوية';
 
   @override
-  String get dashboardFreqWeekly => 'Weekly';
+  String get levelUniversity => 'الجامعة';
 
   @override
-  String get dashboardFreqMonthly => 'Monthly';
+  String get levelCollege => 'الكلية';
 
   @override
-  String get dashboardFreqPassive => 'Passive';
+  String get levelProfessional => 'مهني';
 
   @override
-  String get dashboardAutoDay => 'Select Day';
+  String get typeMCQ => 'اختيار من متعدد';
 
   @override
-  String get dashboardAutoTime => 'Select Time';
+  String get typeOpen => 'أسئلة مفتوحة';
 
   @override
-  String get dashboardAutoSave => 'Update Auto-Pilot';
+  String get typeTF => 'صح أو خطأ';
 
   @override
-  String get dashboardAutoActive => 'Automation Active';
+  String get typeMixed => 'مختلط';
 
   @override
-  String get dashboardScheduleTime => 'Schedule Time';
+  String get dashboardFilterSubtopic => 'موضوع فرعي';
 
   @override
-  String get dashboardArchiveTitle => 'My Archive';
+  String get dashboardFilterSubtopicSelect => 'اختر موضوعًا فرعيًا';
 
   @override
-  String get dashboardViewAll => 'All';
+  String get dashboardFilterSubtopicOther => 'أخرى';
+
+  @override
+  String get dashboardFilterTitleHint => 'إضافة عنوان (مثال: الأُسُس)';
+
+  @override
+  String get dashboardFilterExamTemplate => 'قالب الامتحان';
+
+  @override
+  String get dashboardGenerateBtn => 'إنشاء الامتحان';
+
+  @override
+  String get dashboardAutoTitle => 'الطيار الآلي';
+
+  @override
+  String get dashboardAutoDesc => 'كم مرة يجب أن يختبرك الذكاء الاصطناعي؟';
+
+  @override
+  String get dashboardFreqDaily => 'يومي';
+
+  @override
+  String get dashboardFreqWeekly => 'أسبوعي';
+
+  @override
+  String get dashboardFreqMonthly => 'شهرياً';
+
+  @override
+  String get dashboardFreqPassive => 'خامل';
+
+  @override
+  String dashboardAutoDayMonthly(int day) {
+    return 'اليوم $day';
+  }
+
+  @override
+  String get dayMon => 'اثن';
+
+  @override
+  String get dayTue => 'ثلا';
+
+  @override
+  String get dayWed => 'أرب';
+
+  @override
+  String get dayThu => 'خمي';
+
+  @override
+  String get dayFri => 'جمع';
+
+  @override
+  String get daySat => 'سبت';
+
+  @override
+  String get daySun => 'أحد';
+
+  @override
+  String get dashboardAutoDay => 'اختر اليوم';
+
+  @override
+  String get dashboardAutoTime => 'اختر الوقت';
+
+  @override
+  String get dashboardAutoSave => 'تحديث الطيار الآلي';
+
+  @override
+  String get dashboardAutoActive => 'الأتمتة نشطة';
+
+  @override
+  String get dashboardScheduleTime => 'الوقت المحدد';
+
+  @override
+  String get dashboardArchiveTitle => 'أرشيفي';
+
+  @override
+  String get dashboardViewAll => 'الكل';
 }

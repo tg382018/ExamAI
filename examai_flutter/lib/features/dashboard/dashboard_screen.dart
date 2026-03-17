@@ -8,6 +8,7 @@ import '../../core/models/models.dart';
 import '../../shared/widgets/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'topic_data.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -27,10 +28,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   // Manual Create Filter states
   String _selectedLevel = 'High School';
-  String _selectedTopic = 'General';
+  String _selectedTopic = '';
   int _selectedCount = 10;
   String _selectedType = 'Multiple Choice';
   final List<String> _subtopics = [];
+  String _selectedSubtopic = 'All';
+  final _subtopicFocusNode = FocusNode();
+
+  Map<String, List<String>> get _topicData =>
+      getLocalizedTopicData(Localizations.localeOf(context).languageCode);
 
   // Auto-Pilot states
   String _autoFreq = 'Daily'; // Daily, Weekly, Monthly, Passive
@@ -40,10 +46,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final _autoPromptController = TextEditingController();
   final _autoSubtopicController = TextEditingController();
   String _autoLevel = 'High School';
-  String _autoTopic = 'Math';
+  String _autoTopic = '';
   int _autoCount = 10;
   String _autoType = 'Multiple Choice';
   final List<String> _autoSubtopics = [];
+  String _autoSubtopic = 'All';
+  final _autoSubtopicFocusNode = FocusNode();
 
   Timer? _pollingTimer;
 
@@ -55,11 +63,46 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Initialize topics if empty (happens on first load across different locales)
+    if (_selectedTopic.isEmpty && _topicData.isNotEmpty) {
+      _selectedTopic = _topicData.keys.first;
+    }
+    if (_autoTopic.isEmpty && _topicData.isNotEmpty) {
+      _autoTopic = _topicData.keys.first;
+    }
+
+    // Ensure current selection is valid for the current localized data
+    if (_selectedTopic.isNotEmpty && !_topicData.containsKey(_selectedTopic)) {
+      _selectedTopic = _topicData.keys.first;
+    }
+    if (_autoTopic.isNotEmpty && !_topicData.containsKey(_autoTopic)) {
+      _autoTopic = _topicData.keys.first;
+    }
+
+    // Ensure subtopics are valid
+    final l10n = AppLocalizations.of(context)!;
+    if (_selectedSubtopic != 'All' &&
+        _selectedSubtopic != l10n.dashboardFilterSubtopicOther &&
+        !(_topicData[_selectedTopic] ?? []).contains(_selectedSubtopic)) {
+      _selectedSubtopic = 'All';
+    }
+    if (_autoSubtopic != 'All' &&
+        _autoSubtopic != l10n.dashboardFilterSubtopicOther &&
+        !(_topicData[_autoTopic] ?? []).contains(_autoSubtopic)) {
+      _autoSubtopic = 'All';
+    }
+  }
+
+  @override
   void dispose() {
     _promptController.dispose();
     _subtopicController.dispose();
     _autoPromptController.dispose();
     _autoSubtopicController.dispose();
+    _subtopicFocusNode.dispose();
+    _autoSubtopicFocusNode.dispose();
     _pollingTimer?.cancel();
     super.dispose();
   }
@@ -76,6 +119,40 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     });
   }
 
+  String _getLevelTitle(String level, AppLocalizations l10n) {
+    switch (level) {
+      case 'Elementary':
+        return l10n.levelElementary;
+      case 'Middle School':
+        return l10n.levelMiddle;
+      case 'High School':
+        return l10n.levelHigh;
+      case 'University':
+        return l10n.levelUniversity;
+      case 'College':
+        return l10n.levelCollege;
+      case 'Professional':
+        return l10n.levelProfessional;
+      default:
+        return level;
+    }
+  }
+
+  String _getTypeTitle(String type, AppLocalizations l10n) {
+    switch (type) {
+      case 'Multiple Choice':
+        return l10n.typeMCQ;
+      case 'Open Ended':
+        return l10n.typeOpen;
+      case 'True/False':
+        return l10n.typeTF;
+      case 'Mixed':
+        return l10n.typeMixed;
+      default:
+        return type;
+    }
+  }
+
   void _showPlanDialog(Map<String, dynamic> plan, String finalPrompt) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final List<dynamic> outline = plan['outline'] ?? [];
@@ -84,149 +161,164 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => GlassCard(
-        padding: const EdgeInsets.all(24),
-        borderRadius: 24,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Sınav Taslağı Hazır! 🎯',
-              style: GoogleFonts.outfit(
-                  color: const Color(0xFF10B981),
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              plan['title'] ?? 'Yeni Sınav',
-              style: GoogleFonts.outfit(
-                  color: isDark ? Colors.white : Colors.black,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold),
-            ),
-            if (plan['description'] != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                plan['description'],
-                style: GoogleFonts.outfit(
-                    color: isDark ? Colors.white70 : Colors.black54,
-                    fontSize: 15,
-                    height: 1.4),
-              ),
-            ],
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                _buildPlanTag(
-                    Icons.help_outline, '${plan['questionCount']} Soru'),
-                const SizedBox(width: 12),
-                _buildPlanTag(
-                    Icons.draw_outlined,
-                    plan['needsAscii'] == true
-                        ? 'ASCII: Evet'
-                        : 'ASCII: Hayır'),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Kapsanan Konular:',
-              style: GoogleFonts.outfit(
-                  color: isDark ? Colors.white70 : Colors.black54,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: outline.map((item) {
-                return Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: const Color(0xFF10B981).withOpacity(0.2)),
-                  ),
-                  child: Text(
-                    item.toString(),
-                    style: GoogleFonts.outfit(
-                        color: const Color(0xFF10B981),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () async {
-                  // Stage 3: Confirm and queue background generation
-                  await ref
-                      .read(examsProvider.notifier)
-                      .proposeExam(plan, finalPrompt);
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            'Sınavınız hazırlanıyor, bitince bildirim alacaksınız. ✨'),
-                        backgroundColor: const Color(0xFF10B981),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+      builder: (context) => ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
+        child: GlassCard(
+          padding: const EdgeInsets.all(24),
+          borderRadius: 24,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
                       ),
-                    );
-                    // Refresh exams list to see the "QUEUED" exam
-                    ref.read(examsProvider.notifier).fetchExams();
-                    // Clear the prompt input
-                    _promptController.clear();
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Sınav Taslağı Hazır! 🎯',
+                        style: GoogleFonts.outfit(
+                            color: const Color(0xFF10B981),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        plan['title'] ?? 'Yeni Sınav',
+                        style: GoogleFonts.outfit(
+                            color: isDark ? Colors.white : Colors.black,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      if (plan['description'] != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          plan['description'],
+                          style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white70 : Colors.black54,
+                              fontSize: 15,
+                              height: 1.4),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          _buildPlanTag(Icons.help_outline,
+                              '${plan['questionCount']} Soru'),
+                          const SizedBox(width: 12),
+                          _buildPlanTag(
+                              Icons.draw_outlined,
+                              plan['needsAscii'] == true
+                                  ? 'ASCII: Evet'
+                                  : 'ASCII: Hayır'),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Kapsanan Konular:',
+                        style: GoogleFonts.outfit(
+                            color: isDark ? Colors.white70 : Colors.black54,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: outline.map((item) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color:
+                                      const Color(0xFF10B981).withOpacity(0.2)),
+                            ),
+                            child: Text(
+                              item.toString(),
+                              style: GoogleFonts.outfit(
+                                  color: const Color(0xFF10B981),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Text('Oluştur',
-                    style: GoogleFonts.outfit(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
               ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Vazgeç',
-                    style: GoogleFonts.outfit(
-                        color: isDark ? Colors.white60 : Colors.black45,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500)),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    // Stage 3: Confirm and queue background generation
+                    await ref
+                        .read(examsProvider.notifier)
+                        .proposeExam(plan, finalPrompt);
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Sınavınız hazırlanıyor, bitince bildirim alacaksınız. ✨'),
+                          backgroundColor: const Color(0xFF10B981),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                      );
+                      // Refresh exams list to see the "QUEUED" exam
+                      ref.read(examsProvider.notifier).fetchExams();
+                      // Clear the prompt input
+                      _promptController.clear();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: Text('Oluştur',
+                      style: GoogleFonts.outfit(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Vazgeç',
+                      style: GoogleFonts.outfit(
+                          color: isDark ? Colors.white60 : Colors.black45,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500)),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
@@ -263,8 +355,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       if (_promptController.text.trim().isEmpty) return;
       finalPrompt = _promptController.text.trim();
     } else {
+      final l10n = AppLocalizations.of(context)!;
+      bool isOther = _selectedSubtopic == l10n.dashboardFilterSubtopicOther;
+      String subtopicStr = (_selectedSubtopic != 'All' && !isOther)
+          ? 'Sub-topic: $_selectedSubtopic. '
+          : '';
+      String titlesStr = _subtopics.isNotEmpty
+          ? 'Extra titles to cover: ${_subtopics.join(", ")}. '
+          : '';
+      String typeStr = _selectedType == 'Mixed'
+          ? 'a mixed exam (include Multiple Choice, True/False, and Open Ended questions)'
+          : 'a $_selectedType exam';
       finalPrompt =
-          'Create a $_selectedType exam for $_selectedLevel about $_selectedTopic. Subtopics: ${_subtopics.join(", ")}. Question count: $_selectedCount.';
+          'Create $typeStr for $_selectedLevel about $_selectedTopic. ${subtopicStr}${titlesStr}Question count: $_selectedCount.';
     }
 
     setState(() => _loading = true);
@@ -548,7 +651,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             _FilterBox(
                 icon: Icons.school_outlined,
                 label: l10n.dashboardFilterLevel,
-                value: _selectedLevel,
+                value: _getLevelTitle(_selectedLevel, l10n),
                 onTap: () => _showFilterMenu(
                     l10n.dashboardFilterLevel,
                     [
@@ -559,44 +662,57 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       'College',
                       'Professional'
                     ],
-                    (v) => setState(() => _selectedLevel = v))),
+                    (v) => setState(() => _selectedLevel = v),
+                    valueLocalizer: (level) => _getLevelTitle(level, l10n))),
             _FilterBox(
                 icon: Icons.book_outlined,
                 label: l10n.dashboardFilterTopic,
                 value: _selectedTopic,
                 onTap: () => _showFilterMenu(
                     l10n.dashboardFilterTopic,
+                    _topicData.keys.toList(),
+                    (v) => setState(() {
+                          _selectedTopic = v;
+                          _selectedSubtopic = 'All'; // Reset subtopic
+                        }))),
+            _FilterBox(
+                icon: Icons.subject_outlined,
+                label: l10n.dashboardFilterSubtopic,
+                value: _selectedSubtopic == 'All'
+                    ? l10n.dashboardFilterAll
+                    : _selectedSubtopic,
+                onTap: () => _showFilterMenu(
+                    l10n.dashboardFilterSubtopicSelect,
                     [
-                      'Math',
-                      'Science',
-                      'History',
-                      'Literature',
-                      'General',
-                      'Technology',
-                      'Art'
+                      'All',
+                      ...(_topicData[_selectedTopic] ?? []),
+                      l10n.dashboardFilterSubtopicOther
                     ],
-                    (v) => setState(() => _selectedTopic = v))),
+                    (v) => setState(() {
+                          _selectedSubtopic = v;
+                          if (v == l10n.dashboardFilterSubtopicOther) {
+                            _subtopicFocusNode.requestFocus();
+                          }
+                        }),
+                    valueLocalizer: (val) =>
+                        val == 'All' ? l10n.dashboardFilterAll : val)),
             _FilterBox(
                 icon: Icons.format_list_numbered,
                 label: l10n.dashboardFilterCount,
                 value: '$_selectedCount Q',
                 onTap: () => _showFilterMenu(
                     l10n.dashboardFilterCount,
-                    ['5', '10', '15', '20', '25', '30'],
+                    ['5', '10', '15'],
                     (v) => setState(() => _selectedCount = int.parse(v)))),
             _FilterBox(
                 icon: Icons.fact_check_outlined,
                 label: l10n.dashboardFilterType,
-                value: _selectedType,
+                value: _getTypeTitle(_selectedType, l10n),
                 onTap: () => _showFilterMenu(
                     l10n.dashboardFilterType,
-                    [
-                      'Multiple Choice',
-                      'Open Ended',
-                      'True/False',
-                      'Fill in the Blanks'
-                    ],
-                    (v) => setState(() => _selectedType = v))),
+                    ['Multiple Choice', 'Open Ended', 'True/False', 'Mixed'],
+                    (v) => setState(() => _selectedType = v),
+                    valueLocalizer: (type) => _getTypeTitle(type, l10n))),
           ],
         ),
         const SizedBox(height: 12),
@@ -618,10 +734,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Expanded(
             child: TextField(
               controller: _subtopicController,
+              focusNode: _subtopicFocusNode,
               style: GoogleFonts.outfit(
                   color: _isDark ? Colors.white : Colors.black87, fontSize: 13),
               decoration: InputDecoration(
-                hintText: l10n.dashboardFilterSubtopicHint,
+                hintText: l10n.dashboardFilterTitleHint,
                 hintStyle: GoogleFonts.outfit(color: const Color(0xFF94A3B8)),
                 border: InputBorder.none,
               ),
@@ -783,23 +900,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   label: l10n.dashboardFreqDaily,
                   time: _autoFreq == 'Daily'
                       ? _autoTime.format(context)
-                      : 'Passive',
+                      : l10n.dashboardFreqPassive,
                   isActive: _autoFreq == 'Daily',
                   onTap: () => setState(() => _autoFreq = 'Daily')),
               const SizedBox(height: 12),
               _ScheduleCard(
                   label: l10n.dashboardFreqWeekly,
                   time: _autoFreq == 'Weekly'
-                      ? '${_getDayName(_autoDay ?? 1)}, ${_autoTime.format(context)}'
-                      : 'Passive',
+                      ? '${_getDayName(_autoDay ?? 1, l10n)}, ${_autoTime.format(context)}'
+                      : l10n.dashboardFreqPassive,
                   isActive: _autoFreq == 'Weekly',
                   onTap: () => setState(() => _autoFreq = 'Weekly')),
               const SizedBox(height: 12),
               _ScheduleCard(
                   label: l10n.dashboardFreqMonthly,
                   time: _autoFreq == 'Monthly'
-                      ? '${_autoDay ?? 1}. G., ${_autoTime.format(context)}'
-                      : 'Passive',
+                      ? '${l10n.dashboardAutoDayMonthly(_autoDay ?? 1)}, ${_autoTime.format(context)}'
+                      : l10n.dashboardFreqPassive,
                   isActive: _autoFreq == 'Monthly',
                   onTap: () => setState(() => _autoFreq = 'Monthly')),
             ],
@@ -813,7 +930,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             const SizedBox(height: 24),
 
             // Integrated Exam Template Tabs
-            Text("Sınav Şablonu",
+            Text(l10n.dashboardFilterExamTemplate,
                 style: GoogleFonts.outfit(
                     color: _isDark ? Colors.white : Colors.black87,
                     fontSize: 14,
@@ -841,7 +958,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Expanded(
             child: _buildActionButton(
               icon: Icons.calendar_today,
-              label: _getDayName(_autoDay ?? 1),
+              label: _getDayName(_autoDay ?? 1, l10n),
               onTap: _selectAutoDay,
             ),
           ),
@@ -849,7 +966,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Expanded(
             child: _buildActionButton(
               icon: Icons.calendar_today,
-              label: '${_autoDay ?? 1}. Gün',
+              label: l10n.dashboardAutoDayMonthly(_autoDay ?? 1),
               onTap: _selectAutoDay,
             ),
           ),
@@ -896,8 +1013,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  String _getDayName(int day) {
-    const days = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+  String _getDayName(int day, AppLocalizations l10n) {
+    final days = [
+      l10n.dayMon,
+      l10n.dayTue,
+      l10n.dayWed,
+      l10n.dayThu,
+      l10n.dayFri,
+      l10n.daySat,
+      l10n.daySun
+    ];
     return days[(day - 1) % 7];
   }
 
@@ -1047,7 +1172,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   void _showFilterMenu(
-      String label, List<String> options, Function(String) onSelect) {
+      String label, List<String> options, Function(String) onSelect,
+      {String Function(String)? valueLocalizer}) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1082,7 +1208,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 itemBuilder: (context, index) {
                   return ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                    title: Text(options[index],
+                    title: Text(
+                        valueLocalizer != null
+                            ? valueLocalizer(options[index])
+                            : options[index],
                         style: GoogleFonts.outfit(
                             color: _isDark ? Colors.white : Colors.black87,
                             fontSize: 15)),
@@ -1181,12 +1310,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           crossAxisCount: 2,
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
-          childAspectRatio: 1.8,
+          childAspectRatio: 1.6,
           children: [
             _FilterBox(
                 icon: Icons.school_outlined,
                 label: l10n.dashboardFilterLevel,
-                value: _autoLevel,
+                value: _getLevelTitle(_autoLevel, l10n),
                 onTap: () => _showFilterMenu(
                     l10n.dashboardFilterLevel,
                     [
@@ -1197,44 +1326,57 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       'College',
                       'Professional'
                     ],
-                    (v) => setState(() => _autoLevel = v))),
+                    (v) => setState(() => _autoLevel = v),
+                    valueLocalizer: (level) => _getLevelTitle(level, l10n))),
             _FilterBox(
                 icon: Icons.book_outlined,
                 label: l10n.dashboardFilterTopic,
                 value: _autoTopic,
                 onTap: () => _showFilterMenu(
                     l10n.dashboardFilterTopic,
+                    _topicData.keys.toList(),
+                    (v) => setState(() {
+                          _autoTopic = v;
+                          _autoSubtopic = 'All'; // Reset subtopic
+                        }))),
+            _FilterBox(
+                icon: Icons.subject_outlined,
+                label: l10n.dashboardFilterSubtopic,
+                value: _autoSubtopic == 'All'
+                    ? l10n.dashboardFilterAll
+                    : _autoSubtopic,
+                onTap: () => _showFilterMenu(
+                    l10n.dashboardFilterSubtopicSelect,
                     [
-                      'Math',
-                      'Science',
-                      'History',
-                      'Literature',
-                      'General',
-                      'Technology',
-                      'Art'
+                      'All',
+                      ...(_topicData[_autoTopic] ?? []),
+                      l10n.dashboardFilterSubtopicOther
                     ],
-                    (v) => setState(() => _autoTopic = v))),
+                    (v) => setState(() {
+                          _autoSubtopic = v;
+                          if (v == l10n.dashboardFilterSubtopicOther) {
+                            _autoSubtopicFocusNode.requestFocus();
+                          }
+                        }),
+                    valueLocalizer: (val) =>
+                        val == 'All' ? l10n.dashboardFilterAll : val)),
             _FilterBox(
                 icon: Icons.format_list_numbered,
                 label: l10n.dashboardFilterCount,
                 value: '$_autoCount Q',
                 onTap: () => _showFilterMenu(
                     l10n.dashboardFilterCount,
-                    ['5', '10', '15', '20', '25', '30'],
+                    ['5', '10', '15'],
                     (v) => setState(() => _autoCount = int.parse(v)))),
             _FilterBox(
                 icon: Icons.fact_check_outlined,
                 label: l10n.dashboardFilterType,
-                value: _autoType,
+                value: _getTypeTitle(_autoType, l10n),
                 onTap: () => _showFilterMenu(
                     l10n.dashboardFilterType,
-                    [
-                      'Multiple Choice',
-                      'Open Ended',
-                      'True/False',
-                      'Fill in the Blanks'
-                    ],
-                    (v) => setState(() => _autoType = v))),
+                    ['Multiple Choice', 'Open Ended', 'True/False', 'Mixed'],
+                    (v) => setState(() => _autoType = v),
+                    valueLocalizer: (type) => _getTypeTitle(type, l10n))),
           ],
         ),
         const SizedBox(height: 12),
@@ -1328,10 +1470,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Expanded(
             child: TextField(
               controller: _autoSubtopicController,
+              focusNode: _autoSubtopicFocusNode,
               style: GoogleFonts.outfit(
                   color: _isDark ? Colors.white : Colors.black87, fontSize: 13),
               decoration: InputDecoration(
-                hintText: l10n.dashboardFilterSubtopicHint,
+                hintText: l10n.dashboardFilterTitleHint,
                 hintStyle: GoogleFonts.outfit(color: const Color(0xFF94A3B8)),
                 border: InputBorder.none,
               ),

@@ -23,6 +23,7 @@ class _ExamDetailScreenState extends ConsumerState<ExamDetailScreen> {
   Timer? _timer;
   int _secondsRemaining = 0;
   DateTime? _startedAt;
+  bool _isTimeUp = false;
 
   @override
   void initState() {
@@ -41,14 +42,25 @@ class _ExamDetailScreenState extends ConsumerState<ExamDetailScreen> {
   }
 
   void _startTimer(int minutes) {
-    if (_timer != null) return;
+    if (_timer != null || _isTimeUp) return;
     _secondsRemaining = minutes * 60;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_secondsRemaining > 0) {
         setState(() => _secondsRemaining--);
       } else {
         _timer?.cancel();
-        _submit();
+        if (mounted) {
+          setState(() => _isTimeUp = true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content:
+                  Text('Süre Doldu! Sınavınız otomatik olarak gönderiliyor...'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+          _submit();
+        }
       }
     });
   }
@@ -182,13 +194,17 @@ class _ExamDetailScreenState extends ConsumerState<ExamDetailScreen> {
                           !_controllers.containsKey(q.id)) {
                         _controllers[q.id] = TextEditingController();
                       }
-                      return _QuestionView(
-                        question: q,
-                        index: index,
-                        total: questions.length,
-                        selectedValue: _answers[q.id],
-                        controller: _controllers[q.id],
-                        onSelect: (opt) => setState(() => _answers[q.id] = opt),
+                      return IgnorePointer(
+                        ignoring: _isTimeUp,
+                        child: _QuestionView(
+                          question: q,
+                          index: index,
+                          total: questions.length,
+                          selectedValue: _answers[q.id],
+                          controller: _controllers[q.id],
+                          onSelect: (opt) =>
+                              setState(() => _answers[q.id] = opt),
+                        ),
                       );
                     },
                   ),
@@ -210,12 +226,15 @@ class _ExamDetailScreenState extends ConsumerState<ExamDetailScreen> {
                       if (_currentIndex > 0) const SizedBox(width: 16),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: _currentIndex < questions.length - 1
-                              ? () => _pageController.nextPage(
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeInOut,
-                                  )
-                              : _submit,
+                          onPressed: _isTimeUp
+                              ? null
+                              : (_currentIndex < questions.length - 1
+                                  ? () => _pageController.nextPage(
+                                        duration:
+                                            const Duration(milliseconds: 300),
+                                        curve: Curves.easeInOut,
+                                      )
+                                  : _submit),
                           child: Text(_currentIndex < questions.length - 1
                               ? 'Sonraki'
                               : 'Sınavı Bitir'),

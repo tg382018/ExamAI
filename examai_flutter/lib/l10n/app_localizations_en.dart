@@ -228,6 +228,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashboardFilterSubtopicHint => 'Add subtopic...';
 
   @override
+  String get dashboardFilterAll => 'All';
+
+  @override
+  String get levelElementary => 'Elementary';
+
+  @override
+  String get levelMiddle => 'Middle School';
+
+  @override
+  String get levelHigh => 'High School';
+
+  @override
+  String get levelUniversity => 'University';
+
+  @override
+  String get levelCollege => 'College';
+
+  @override
+  String get levelProfessional => 'Professional';
+
+  @override
+  String get typeMCQ => 'Multiple Choice';
+
+  @override
+  String get typeOpen => 'Open Ended';
+
+  @override
+  String get typeTF => 'True/False';
+
+  @override
+  String get typeMixed => 'Mixed';
+
+  @override
+  String get dashboardFilterSubtopic => 'Sub-topic';
+
+  @override
+  String get dashboardFilterSubtopicSelect => 'Select Sub-topic';
+
+  @override
+  String get dashboardFilterSubtopicOther => 'Other';
+
+  @override
+  String get dashboardFilterTitleHint => 'Add Title (e.g.: Exponentials)';
+
+  @override
+  String get dashboardFilterExamTemplate => 'Exam Template';
+
+  @override
   String get dashboardGenerateBtn => 'Create Exam';
 
   @override
@@ -247,6 +295,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashboardFreqPassive => 'Passive';
+
+  @override
+  String dashboardAutoDayMonthly(int day) {
+    return 'Day $day';
+  }
+
+  @override
+  String get dayMon => 'Mon';
+
+  @override
+  String get dayTue => 'Tue';
+
+  @override
+  String get dayWed => 'Wed';
+
+  @override
+  String get dayThu => 'Thu';
+
+  @override
+  String get dayFri => 'Fri';
+
+  @override
+  String get daySat => 'Sat';
+
+  @override
+  String get daySun => 'Sun';
 
   @override
   String get dashboardAutoDay => 'Select Day';

@@ -199,75 +199,149 @@ class AppLocalizationsEs extends AppLocalizations {
   String get commonClose => 'Cerrar';
 
   @override
-  String get dashboardGreeting => 'Welcome Back,';
+  String get dashboardGreeting => 'Bienvenido de nuevo,';
 
   @override
-  String get dashboardCreateTitle => 'Create Exam';
+  String get dashboardCreateTitle => 'Crear examen';
 
   @override
-  String get dashboardTabPrompt => 'AI Prompt';
+  String get dashboardTabPrompt => 'Prompt IA';
 
   @override
-  String get dashboardTabFilter => 'Filter & Create';
+  String get dashboardTabFilter => 'Filtrar y crear';
 
   @override
   String get dashboardPromptHint =>
-      '✨ e.g.: Prepare a 5-question, thought-provoking test on Quantum Physics...';
+      '✨ ej.: Prepara un test estimulante de 5 preguntas sobre Física Cuántica...';
 
   @override
-  String get dashboardFilterLevel => 'Level';
+  String get dashboardFilterLevel => 'Nivel';
 
   @override
-  String get dashboardFilterTopic => 'Topic';
+  String get dashboardFilterTopic => 'Tema';
 
   @override
-  String get dashboardFilterCount => 'Count';
+  String get dashboardFilterCount => 'Cantidad';
 
   @override
-  String get dashboardFilterType => 'Type';
+  String get dashboardFilterType => 'Tipo';
 
   @override
-  String get dashboardFilterSubtopicHint => 'Add subtopic...';
+  String get dashboardFilterSubtopicHint => 'Agregar subtema...';
 
   @override
-  String get dashboardGenerateBtn => 'Create Exam';
+  String get dashboardFilterAll => 'Todos';
 
   @override
-  String get dashboardAutoTitle => 'Auto Pilot';
+  String get levelElementary => 'Primaria';
 
   @override
-  String get dashboardAutoDesc => 'How often should AI test you?';
+  String get levelMiddle => 'Secundaria';
 
   @override
-  String get dashboardFreqDaily => 'Daily';
+  String get levelHigh => 'Bachillerato';
 
   @override
-  String get dashboardFreqWeekly => 'Weekly';
+  String get levelUniversity => 'Universidad';
 
   @override
-  String get dashboardFreqMonthly => 'Monthly';
+  String get levelCollege => 'Colegio';
 
   @override
-  String get dashboardFreqPassive => 'Passive';
+  String get levelProfessional => 'Profesional';
 
   @override
-  String get dashboardAutoDay => 'Select Day';
+  String get typeMCQ => 'Opción Múltiple';
 
   @override
-  String get dashboardAutoTime => 'Select Time';
+  String get typeOpen => 'Preguntas Abiertas';
 
   @override
-  String get dashboardAutoSave => 'Update Auto-Pilot';
+  String get typeTF => 'Verdadero/Falso';
 
   @override
-  String get dashboardAutoActive => 'Automation Active';
+  String get typeMixed => 'Mixto';
 
   @override
-  String get dashboardScheduleTime => 'Schedule Time';
+  String get dashboardFilterSubtopic => 'Subtema';
 
   @override
-  String get dashboardArchiveTitle => 'My Archive';
+  String get dashboardFilterSubtopicSelect => 'Seleccionar subtema';
 
   @override
-  String get dashboardViewAll => 'All';
+  String get dashboardFilterSubtopicOther => 'Otro';
+
+  @override
+  String get dashboardFilterTitleHint => 'Agregar título (ej.: Exponenciales)';
+
+  @override
+  String get dashboardFilterExamTemplate => 'Plantilla de examen';
+
+  @override
+  String get dashboardGenerateBtn => 'Crear examen';
+
+  @override
+  String get dashboardAutoTitle => 'Piloto automático';
+
+  @override
+  String get dashboardAutoDesc => '¿Con qué frecuencia debe evaluarte la IA?';
+
+  @override
+  String get dashboardFreqDaily => 'Diario';
+
+  @override
+  String get dashboardFreqWeekly => 'Semanal';
+
+  @override
+  String get dashboardFreqMonthly => 'Mensual';
+
+  @override
+  String get dashboardFreqPassive => 'Pasivo';
+
+  @override
+  String dashboardAutoDayMonthly(int day) {
+    return 'Día $day';
+  }
+
+  @override
+  String get dayMon => 'Lun';
+
+  @override
+  String get dayTue => 'Mar';
+
+  @override
+  String get dayWed => 'Mié';
+
+  @override
+  String get dayThu => 'Jue';
+
+  @override
+  String get dayFri => 'Vie';
+
+  @override
+  String get daySat => 'Sáb';
+
+  @override
+  String get daySun => 'Dom';
+
+  @override
+  String get dashboardAutoDay => 'Seleccionar día';
+
+  @override
+  String get dashboardAutoTime => 'Seleccionar hora';
+
+  @override
+  String get dashboardAutoSave => 'Actualizar piloto automático';
+
+  @override
+  String get dashboardAutoActive => 'Automatización activa';
+
+  @override
+  String get dashboardScheduleTime => 'Hora programada';
+
+  @override
+  String get dashboardArchiveTitle => 'Mi archivo';
+
+  @override
+  String get dashboardViewAll => 'Todo';
 }

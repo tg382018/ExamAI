@@ -227,6 +227,54 @@ class AppLocalizationsTr extends AppLocalizations {
   String get dashboardFilterSubtopicHint => 'Alt konu ekle...';
 
   @override
+  String get dashboardFilterAll => 'Hepsi';
+
+  @override
+  String get levelElementary => 'İlkokul';
+
+  @override
+  String get levelMiddle => 'Ortaokul';
+
+  @override
+  String get levelHigh => 'Lise';
+
+  @override
+  String get levelUniversity => 'Üniversite';
+
+  @override
+  String get levelCollege => 'Yüksekokul';
+
+  @override
+  String get levelProfessional => 'Profesyonel';
+
+  @override
+  String get typeMCQ => 'Çoktan Seçmeli';
+
+  @override
+  String get typeOpen => 'Açık Uçlu';
+
+  @override
+  String get typeTF => 'Doğru/Yanlış';
+
+  @override
+  String get typeMixed => 'Karışık';
+
+  @override
+  String get dashboardFilterSubtopic => 'Alt Konu';
+
+  @override
+  String get dashboardFilterSubtopicSelect => 'Alt Konu Seç';
+
+  @override
+  String get dashboardFilterSubtopicOther => 'Diğer';
+
+  @override
+  String get dashboardFilterTitleHint => 'Başlık Ekle (Örn: Üslü Sayılar)';
+
+  @override
+  String get dashboardFilterExamTemplate => 'Sınav Şablonu';
+
+  @override
   String get dashboardGenerateBtn => 'Sınavı Yarat';
 
   @override
@@ -246,6 +294,32 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get dashboardFreqPassive => 'Pasif';
+
+  @override
+  String dashboardAutoDayMonthly(int day) {
+    return '$day. Gün';
+  }
+
+  @override
+  String get dayMon => 'Pzt';
+
+  @override
+  String get dayTue => 'Sal';
+
+  @override
+  String get dayWed => 'Çar';
+
+  @override
+  String get dayThu => 'Per';
+
+  @override
+  String get dayFri => 'Cum';
+
+  @override
+  String get daySat => 'Cmt';
+
+  @override
+  String get daySun => 'Paz';
 
   @override
   String get dashboardAutoDay => 'Gün Seç';
