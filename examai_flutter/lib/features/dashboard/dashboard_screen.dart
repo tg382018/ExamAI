@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,6 +27,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final _subtopicController = TextEditingController();
   bool _loading = false;
   bool _isPromptTab = true;
+  File? _attachedFile;
+  String? _draftFileBase64;
+  String? _draftFileMime;
 
   // Manual Create Filter states
   String _selectedLevel = 'High School';
@@ -39,19 +44,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       getLocalizedTopicData(Localizations.localeOf(context).languageCode);
 
   // Auto-Pilot states
-  String _autoFreq = 'Daily'; // Daily, Weekly, Monthly, Passive
-  int? _autoDay; // 1-7 for Weekly, 1-31 for Monthly
-  TimeOfDay _autoTime = const TimeOfDay(hour: 20, minute: 0);
+  String _autoFreq = 'Passive';
+  TimeOfDay _autoTime = const TimeOfDay(hour: 09, minute: 00);
+  int? _autoDay = 1;
+
+  File? _autoAttachedFile;
   bool _autoIsPromptTab = true;
-  final _autoPromptController = TextEditingController();
-  final _autoSubtopicController = TextEditingController();
-  String _autoLevel = 'High School';
-  String _autoTopic = '';
+  String _autoLevel = 'University';
+  String _autoTopic = 'Mathematics';
+  String _autoSubtopic = 'All';
   int _autoCount = 10;
   String _autoType = 'Multiple Choice';
   final List<String> _autoSubtopics = [];
-  String _autoSubtopic = 'All';
-  final _autoSubtopicFocusNode = FocusNode();
+  final TextEditingController _autoPromptController = TextEditingController();
+  final TextEditingController _autoSubtopicController = TextEditingController();
+  final FocusNode _autoSubtopicFocusNode = FocusNode();
+  String _autoDifficulty = 'mixed';
+  bool _fetchingConfig = false;
 
   Timer? _pollingTimer;
 
@@ -59,7 +68,89 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(examsProvider.notifier).fetchExams());
+    _fetchAutoPilotConfig();
     _startPolling();
+  }
+
+  Future<void> _fetchAutoPilotConfig() async {
+    setState(() => _fetchingConfig = true);
+    try {
+      final api = ref.read(apiServiceProvider);
+      final config = await api.getAutoPilotConfig();
+
+      if (config != null && config['isActive'] != null) {
+        setState(() {
+          final isActive = config['isActive'] ?? false;
+          _autoFreq = isActive ? 'Daily' : 'Passive';
+
+          final timeStr = config['time'] ?? "09:00";
+          final parts = timeStr.split(':');
+          if (parts.length == 2) {
+            _autoTime = TimeOfDay(
+                hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+          }
+
+          _autoTopic = config['topic'] ?? 'Mathematics';
+          _autoSubtopic = config['subtopic'] ?? 'All';
+          _autoLevel = config['level'] ?? 'University';
+          _autoDifficulty = config['difficulty'] ?? 'mixed';
+          _autoCount = config['questionCount'] ?? 10;
+          _autoType = config['type'] ?? 'Multiple Choice';
+          _autoIsPromptTab = config['isPromptTab'] ?? true;
+          _autoPromptController.text = config['prompt'] ?? '';
+        });
+      }
+    } catch (e) {
+      debugPrint('[AutoPilot Fetch] Error: $e');
+    } finally {
+      setState(() => _fetchingConfig = false);
+    }
+  }
+
+  Future<void> _saveAutoPilotConfig() async {
+    setState(() => _loading = true);
+    try {
+      final api = ref.read(apiServiceProvider);
+
+      final hour = _autoTime.hour.toString().padLeft(2, '0');
+      final minute = _autoTime.minute.toString().padLeft(2, '0');
+      final timeStr = "$hour:$minute";
+
+      final config = {
+        'isActive': _autoFreq != 'Passive',
+        'frequency': _autoFreq.toLowerCase(),
+        'time': timeStr,
+        'dayOfWeek': _autoDay,
+        'topic': _autoTopic,
+        'subtopic': _autoSubtopic,
+        'level': _autoLevel,
+        'difficulty': _autoDifficulty,
+        'questionCount': _autoCount,
+        'type': _autoType,
+        'isPromptTab': _autoIsPromptTab,
+        'prompt': _autoPromptController.text,
+      };
+
+      await api.saveAutoPilotConfig(config);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Otomatik Pilot başarıyla güncellendi! ✨'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Hata: $e'), backgroundColor: Colors.redAccent),
+        );
+      }
+    } finally {
+      setState(() => _loading = false);
+    }
   }
 
   @override
@@ -153,7 +244,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
   }
 
-  void _showPlanDialog(Map<String, dynamic> plan, String finalPrompt) {
+  void _showPlanDialog(Map<String, dynamic> plan, String finalPrompt,
+      {String? fileBase64, String? fileMime, bool isAuto = false}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final List<dynamic> outline = plan['outline'] ?? [];
 
@@ -270,9 +362,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 child: ElevatedButton(
                   onPressed: () async {
                     // Stage 3: Confirm and queue background generation
-                    await ref
-                        .read(examsProvider.notifier)
-                        .proposeExam(plan, finalPrompt);
+                    await ref.read(examsProvider.notifier).proposeExam(
+                        plan, finalPrompt,
+                        fileBase64: fileBase64,
+                        fileMime: fileMime,
+                        isAuto: isAuto);
                     if (mounted) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -287,8 +381,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       );
                       // Refresh exams list to see the "QUEUED" exam
                       ref.read(examsProvider.notifier).fetchExams();
-                      // Clear the prompt input
-                      _promptController.clear();
+                      // Clear the prompt input and attachment
+                      if (isAuto) {
+                        _autoPromptController.clear();
+                        setState(() => _autoAttachedFile = null);
+                      } else {
+                        _promptController.clear();
+                        setState(() => _attachedFile = null);
+                      }
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -349,31 +449,59 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  Future<void> _generateExam() async {
+  Future<void> _generateExam({bool isAuto = false}) async {
     String finalPrompt = '';
-    if (_isPromptTab) {
-      if (_promptController.text.trim().isEmpty) return;
-      finalPrompt = _promptController.text.trim();
+    if (isAuto) {
+      if (_autoIsPromptTab) {
+        if (_autoPromptController.text.trim().isEmpty) return;
+        finalPrompt = _autoPromptController.text.trim();
+      } else {
+        final l10n = AppLocalizations.of(context)!;
+        bool isOther = _autoSubtopic == l10n.dashboardFilterSubtopicOther;
+        String subtopicStr = (_autoSubtopic != 'All' && !isOther)
+            ? 'Sub-topic: $_autoSubtopic. '
+            : '';
+        String titlesStr = _autoSubtopics.isNotEmpty
+            ? 'Extra titles to cover: ${_autoSubtopics.join(", ")}. '
+            : '';
+        String typeStr = _autoType == 'Mixed'
+            ? 'a mixed exam (include Multiple Choice, True/False, and Open Ended questions)'
+            : 'a $_autoType exam';
+        finalPrompt =
+            'Create $typeStr for $_autoLevel about $_autoTopic. ${subtopicStr}${titlesStr}Question count: $_autoCount.';
+      }
     } else {
-      final l10n = AppLocalizations.of(context)!;
-      bool isOther = _selectedSubtopic == l10n.dashboardFilterSubtopicOther;
-      String subtopicStr = (_selectedSubtopic != 'All' && !isOther)
-          ? 'Sub-topic: $_selectedSubtopic. '
-          : '';
-      String titlesStr = _subtopics.isNotEmpty
-          ? 'Extra titles to cover: ${_subtopics.join(", ")}. '
-          : '';
-      String typeStr = _selectedType == 'Mixed'
-          ? 'a mixed exam (include Multiple Choice, True/False, and Open Ended questions)'
-          : 'a $_selectedType exam';
-      finalPrompt =
-          'Create $typeStr for $_selectedLevel about $_selectedTopic. ${subtopicStr}${titlesStr}Question count: $_selectedCount.';
+      if (_isPromptTab) {
+        if (_promptController.text.trim().isEmpty) return;
+        finalPrompt = _promptController.text.trim();
+      } else {
+        final l10n = AppLocalizations.of(context)!;
+        bool isOther = _selectedSubtopic == l10n.dashboardFilterSubtopicOther;
+        String subtopicStr = (_selectedSubtopic != 'All' && !isOther)
+            ? 'Sub-topic: $_selectedSubtopic. '
+            : '';
+        String titlesStr = _subtopics.isNotEmpty
+            ? 'Extra titles to cover: ${_subtopics.join(", ")}. '
+            : '';
+        String typeStr = _selectedType == 'Mixed'
+            ? 'a mixed exam (include Multiple Choice, True/False, and Open Ended questions)'
+            : 'a $_selectedType exam';
+        finalPrompt =
+            'Create $typeStr for $_selectedLevel about $_selectedTopic. ${subtopicStr}${titlesStr}Question count: $_selectedCount.';
+      }
     }
 
     setState(() => _loading = true);
     try {
       final api = ref.read(apiServiceProvider);
-      final plan = await api.getDraftPlan(finalPrompt);
+      final result = await api.getDraftPlan(finalPrompt,
+          attachment: isAuto ? _autoAttachedFile : _attachedFile);
+      final plan = result['suggested'];
+      final fileBase64 = result['fileBase64'] as String?;
+      final fileMime = result['fileMime'] as String?;
+      // Store for later use in confirm
+      _draftFileBase64 = fileBase64;
+      _draftFileMime = fileMime;
       setState(() => _loading = false);
 
       if (plan['isValid'] == false) {
@@ -407,7 +535,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       }
 
       if (mounted) {
-        _showPlanDialog(plan, finalPrompt);
+        _showPlanDialog(plan, finalPrompt,
+            fileBase64: _draftFileBase64,
+            fileMime: _draftFileMime,
+            isAuto: isAuto);
       }
     } catch (e) {
       setState(() => _loading = false);
@@ -423,6 +554,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final exams = ref.watch(examsProvider);
+    final autoExams = exams.where((e) => e.isAuto).toList();
+    final manualExams = exams.where((e) => !e.isAuto).toList();
 
     return Scaffold(
       backgroundColor:
@@ -459,7 +594,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SizedBox(height: 32),
                   _buildAutoPilotCard(l10n),
                   const SizedBox(height: 32),
-                  _buildMyArchiveCard(l10n),
+                  _buildExamsListCard(l10n.dashboardAutoExamsTitle, autoExams,
+                      l10n, Icons.auto_awesome),
+                  const SizedBox(height: 32),
+                  _buildExamsListCard(l10n.dashboardArchiveTitle, manualExams,
+                      l10n, Icons.folder_copy),
                   const SizedBox(height: 100),
                 ],
               ),
@@ -556,9 +695,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 const SizedBox(height: 20),
                 _buildTabSwitcher(l10n),
                 const SizedBox(height: 20),
-                if (_isPromptTab)
-                  _buildPromptField(l10n)
-                else
+                if (_isPromptTab) ...[
+                  _buildPromptField(l10n),
+                  const SizedBox(height: 16),
+                  _buildAttachmentArea(l10n),
+                ] else
                   _buildFilterGrid(l10n),
                 const SizedBox(height: 24),
                 _buildGenerateButton(l10n),
@@ -632,6 +773,267 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickFile() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: _isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: _isDark ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child:
+                      const Icon(Icons.photo_library, color: Colors.blueAccent),
+                ),
+                title: Text(
+                  l10n.attachmentSourceGallery,
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.w500),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickFileFromPlatform(FileType.image);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.insert_drive_file,
+                      color: Colors.orangeAccent),
+                ),
+                title: Text(
+                  l10n.attachmentSourceFiles,
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.w500),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickFileFromPlatform(FileType.custom, allowedExtensions: [
+                    'pdf',
+                    'jpg',
+                    'jpeg',
+                    'png',
+                    'heic',
+                    'webp'
+                  ]);
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickFileFromPlatform(FileType type,
+      {List<String>? allowedExtensions}) async {
+    try {
+      debugPrint('[FilePicker] Opening picker...');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Dosya seçici açılıyor...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+      final result = await FilePicker.platform.pickFiles(
+        type: type,
+        allowedExtensions: allowedExtensions,
+      );
+      if (result != null && result.files.single.path != null) {
+        final path = result.files.single.path!;
+        final ext = path.split('.').last.toLowerCase();
+        final allowed = ['pdf', 'jpg', 'jpeg', 'png', 'heic', 'webp'];
+
+        if (!allowed.contains(ext)) {
+          debugPrint('[FilePicker] Invalid file type: $ext');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                    'Sadece PDF ve görsel yüklenebilir (Videolar kabul edilmez)'),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+          }
+          return;
+        }
+
+        debugPrint('[FilePicker] File picked: $path');
+        setState(() => _attachedFile = File(path));
+      } else {
+        debugPrint('[FilePicker] No file picked or picker cancelled.');
+      }
+    } catch (e) {
+      debugPrint('[FilePicker] Error: $e');
+    }
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  Widget _buildAttachmentArea(AppLocalizations l10n) {
+    if (_attachedFile != null) {
+      final fileName = _attachedFile!.path.split('/').last;
+      final fileSize = _attachedFile!.lengthSync();
+      final isPdf = fileName.toLowerCase().endsWith('.pdf');
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: _isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF10B981).withValues(alpha: 0.3),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isPdf
+                    ? Colors.red.withValues(alpha: 0.1)
+                    : Colors.blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                isPdf ? Icons.picture_as_pdf : Icons.image,
+                color: isPdf ? Colors.redAccent : Colors.blueAccent,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    fileName,
+                    style: GoogleFonts.outfit(
+                      color: _isDark ? Colors.white : Colors.black87,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    _formatFileSize(fileSize),
+                    style: GoogleFonts.outfit(
+                      color: _isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () => setState(() => _attachedFile = null),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child:
+                    const Icon(Icons.close, size: 16, color: Colors.redAccent),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Empty state — dashed border upload zone
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _pickFile,
+        borderRadius: BorderRadius.circular(16),
+        child: CustomPaint(
+          painter: _DashedBorderPainter(
+            color: _isDark
+                ? Colors.white.withValues(alpha: 0.15)
+                : const Color(0xFFCBD5E1),
+            borderRadius: 16,
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            width: double.infinity,
+            child: Column(
+              children: [
+                Icon(
+                  Icons.cloud_upload_outlined,
+                  color: _isDark
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFF64748B),
+                  size: 28,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'PDF veya Görsel Ekle',
+                  style: GoogleFonts.outfit(
+                    color: _isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'PDF, JPG, PNG, HEIC, WEBP (maks. 10MB)',
+                  style: GoogleFonts.outfit(
+                    color: _isDark
+                        ? Colors.white.withValues(alpha: 0.3)
+                        : Colors.black.withValues(alpha: 0.3),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -810,7 +1212,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: _loading ? null : _generateExam,
+        onPressed: _loading ? null : () => _generateExam(isAuto: false),
         style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
@@ -1266,38 +1668,45 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildAutoPromptField(AppLocalizations l10n) {
-    return TextField(
-      controller: _autoPromptController,
-      maxLines: 3,
-      style: GoogleFonts.outfit(
-          color: _isDark ? Colors.white : Colors.black87, fontSize: 13),
-      decoration: InputDecoration(
-        hintText: "Otomasyon için sınav açıklaması...",
-        hintStyle:
-            GoogleFonts.outfit(color: const Color(0xFF94A3B8), fontSize: 12),
-        filled: true,
-        fillColor: _isDark
-            ? Colors.black.withValues(alpha: 0.3)
-            : const Color(0xFFF1F5F9),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-              color: _isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : const Color(0xFFCBD5E1)),
+    return Column(
+      children: [
+        TextField(
+          controller: _autoPromptController,
+          maxLines: 3,
+          style: GoogleFonts.outfit(
+              color: _isDark ? Colors.white : Colors.black87, fontSize: 13),
+          decoration: InputDecoration(
+            hintText: "Otomasyon için sınav açıklaması...",
+            hintStyle: GoogleFonts.outfit(
+                color: const Color(0xFF94A3B8), fontSize: 12),
+            filled: true,
+            fillColor: _isDark
+                ? Colors.black.withValues(alpha: 0.3)
+                : const Color(0xFFF1F5F9),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                  color: _isDark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : const Color(0xFFCBD5E1)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                  color: _isDark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : const Color(0xFFCBD5E1)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide:
+                  const BorderSide(color: Color(0xFF10B981), width: 1.5),
+            ),
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-              color: _isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : const Color(0xFFCBD5E1)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
-        ),
-      ),
+        const SizedBox(height: 12),
+        _buildAutoAttachmentArea(l10n),
+      ],
     );
   }
 
@@ -1308,8 +1717,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: 2,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
           childAspectRatio: 1.6,
           children: [
             _FilterBox(
@@ -1366,7 +1775,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 value: '$_autoCount Q',
                 onTap: () => _showFilterMenu(
                     l10n.dashboardFilterCount,
-                    ['5', '10', '15'],
+                    ['5', '10', '15', '20', '25', '30'],
                     (v) => setState(() => _autoCount = int.parse(v)))),
             _FilterBox(
                 icon: Icons.fact_check_outlined,
@@ -1386,16 +1795,267 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
+  Future<void> _pickAutoFile() async {
+    final l10n = AppLocalizations.of(context)!;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: _isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: _isDark ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child:
+                      const Icon(Icons.photo_library, color: Colors.blueAccent),
+                ),
+                title: Text(
+                  l10n.attachmentSourceGallery,
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.w500),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAutoFileFromPlatform(FileType.image);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.insert_drive_file,
+                      color: Colors.orangeAccent),
+                ),
+                title: Text(
+                  l10n.attachmentSourceFiles,
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.w500),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAutoFileFromPlatform(FileType.custom,
+                      allowedExtensions: [
+                        'pdf',
+                        'jpg',
+                        'jpeg',
+                        'png',
+                        'heic',
+                        'webp'
+                      ]);
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAutoFileFromPlatform(FileType type,
+      {List<String>? allowedExtensions}) async {
+    try {
+      debugPrint('[FilePicker-Auto] Opening picker...');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Dosya seçici açılıyor...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+      final result = await FilePicker.platform.pickFiles(
+        type: type,
+        allowedExtensions: allowedExtensions,
+      );
+      if (result != null && result.files.single.path != null) {
+        final path = result.files.single.path!;
+        final ext = path.split('.').last.toLowerCase();
+        final allowed = ['pdf', 'jpg', 'jpeg', 'png', 'heic', 'webp'];
+
+        if (!allowed.contains(ext)) {
+          debugPrint('[FilePicker-Auto] Invalid file type: $ext');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                    'Sadece PDF ve görsel yüklenebilir (Videolar kabul edilmez)'),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+          }
+          return;
+        }
+
+        debugPrint('[FilePicker-Auto] File picked: $path');
+        setState(() => _autoAttachedFile = File(path));
+      } else {
+        debugPrint('[FilePicker-Auto] No file picked or picker cancelled.');
+      }
+    } catch (e) {
+      debugPrint('[FilePicker-Auto] Error: $e');
+    }
+  }
+
+  Widget _buildAutoAttachmentArea(AppLocalizations l10n) {
+    if (_autoAttachedFile != null) {
+      final fileName = _autoAttachedFile!.path.split('/').last;
+      final fileSize = _autoAttachedFile!.lengthSync();
+      final isPdf = fileName.toLowerCase().endsWith('.pdf');
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: _isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF10B981).withValues(alpha: 0.3),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isPdf
+                    ? Colors.red.withValues(alpha: 0.1)
+                    : Colors.blue.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                isPdf ? Icons.picture_as_pdf : Icons.image,
+                color: isPdf ? Colors.redAccent : Colors.blueAccent,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    fileName,
+                    style: GoogleFonts.outfit(
+                      color: _isDark ? Colors.white : Colors.black87,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    _formatFileSize(fileSize),
+                    style: GoogleFonts.outfit(
+                      color: _isDark
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF64748B),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: () => setState(() => _autoAttachedFile = null),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child:
+                    const Icon(Icons.close, size: 16, color: Colors.redAccent),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _pickAutoFile,
+        borderRadius: BorderRadius.circular(16),
+        child: CustomPaint(
+          painter: _DashedBorderPainter(
+            color: _isDark
+                ? Colors.white.withValues(alpha: 0.15)
+                : const Color(0xFFCBD5E1),
+            borderRadius: 16,
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            width: double.infinity,
+            child: Column(
+              children: [
+                Icon(
+                  Icons.cloud_upload_outlined,
+                  color: _isDark
+                      ? const Color(0xFF94A3B8)
+                      : const Color(0xFF64748B),
+                  size: 28,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'PDF veya Görsel Ekle',
+                  style: GoogleFonts.outfit(
+                    color: _isDark
+                        ? const Color(0xFF94A3B8)
+                        : const Color(0xFF64748B),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'PDF, JPG, PNG, HEIC, WEBP (maks. 10MB)',
+                  style: GoogleFonts.outfit(
+                    color: _isDark
+                        ? Colors.white.withValues(alpha: 0.3)
+                        : Colors.black.withValues(alpha: 0.3),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildAutoSaveButton(AppLocalizations l10n) {
     return SizedBox(
       width: double.infinity,
       height: 50,
       child: ElevatedButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.dashboardAutoSave)),
-          );
-        },
+        onPressed: _loading ? null : _saveAutoPilotConfig,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.1),
           foregroundColor: const Color(0xFF10B981),
@@ -1404,14 +2064,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
-        child: Text(l10n.dashboardAutoSave,
-            style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        child: _loading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+                ),
+              )
+            : Text(l10n.dashboardAutoSave,
+                style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
       ),
     );
   }
 
-  Widget _buildMyArchiveCard(AppLocalizations l10n) {
-    final exams = ref.watch(examsProvider);
+  Widget _buildExamsListCard(
+      String title, List<Exam> exams, AppLocalizations l10n, IconData icon) {
     return GlassCard(
       child: Column(
         children: [
@@ -1420,30 +2089,40 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.folder_copy,
-                      color: Color(0xFF10B981), size: 22),
+                  Icon(icon, color: const Color(0xFF10B981), size: 22),
                   const SizedBox(width: 10),
-                  Text(l10n.dashboardArchiveTitle,
+                  Text(title,
                       style: GoogleFonts.outfit(
                           color: _isDark ? Colors.white : Colors.black87,
                           fontSize: 20,
                           fontWeight: FontWeight.bold)),
                 ],
               ),
-              Text(l10n.dashboardViewAll,
-                  style: GoogleFonts.outfit(
-                      color: const Color(0xFF10B981),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold)),
+              InkWell(
+                onTap: () => context.push('/my-exams/list'),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text(l10n.dashboardViewAll,
+                      style: GoogleFonts.outfit(
+                          color: const Color(0xFF10B981),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold)),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),
           if (exams.isEmpty)
-            const Center(
+            Center(
                 child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Text('Empty Arhive...',
-                        style: TextStyle(color: Colors.white38))))
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                        title == l10n.dashboardAutoExamsTitle
+                            ? 'Henüz otomatik sınav yok...'
+                            : 'Henüz normal sınav yok...',
+                        style: const TextStyle(color: Colors.white38))))
           else
             ListView.separated(
               shrinkWrap: true,
@@ -1948,4 +2627,46 @@ class _DurationBtn extends StatelessWidget {
       ),
     );
   }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double borderRadius;
+
+  _DashedBorderPainter({
+    required this.color,
+    required this.borderRadius,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        Radius.circular(borderRadius),
+      ));
+
+    const dashWidth = 6.0;
+    const dashGap = 4.0;
+    final metrics = path.computeMetrics();
+    for (final metric in metrics) {
+      double distance = 0;
+      while (distance < metric.length) {
+        final next = distance + dashWidth;
+        canvas.drawPath(
+          metric.extractPath(distance, next.clamp(0, metric.length)),
+          paint,
+        );
+        distance = next + dashGap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

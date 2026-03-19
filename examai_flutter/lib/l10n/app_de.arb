@@ -112,6 +112,10 @@
   "dashboardAutoSave": "Autopilot aktualisieren",
   "dashboardAutoActive": "Automatisierung aktiv",
   "dashboardScheduleTime": "Geplante Zeit",
-  "dashboardArchiveTitle": "Mein Archiv",
-  "dashboardViewAll": "Alle"
+  "dashboardArchiveTitle": "Normale Prüfungen",
+  "dashboardAutoExamsTitle": "Automatische Prüfungen",
+  "dashboardViewAll": "Alle",
+  "attachmentSelectTitle": "Anhang auswählen",
+  "attachmentSourceGallery": "Galerie",
+  "attachmentSourceFiles": "Dateien"
 }

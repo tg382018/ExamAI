@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import { Queue } from 'bullmq';
+import multer from 'multer';
 import prisma from '../config/prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { generateDraftPlan } from '../services/llm';
@@ -8,16 +9,47 @@ import { redisConnectionOptions } from '../config/redis';
 const router = Router();
 router.use(authMiddleware);
 
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
+    fileFilter: (_req, file, cb) => {
+        const allowed = [
+            'application/pdf',
+            'image/jpeg',
+            'image/png',
+            'image/jpg',
+            'image/webp',
+            'image/heic',
+            'image/heif'
+        ];
+        if (allowed.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Sadece PDF, Görsel (JPG/PNG/HEIC/WEBP) dosyalar kabul edilir.'));
+        }
+    },
+});
+
 export const examQueue = new Queue('exam-generation', { connection: redisConnectionOptions });
 
-// POST /exam/draft — Fast AI plan suggestion
-router.post('/draft', async (req: AuthRequest, res: Response) => {
+// POST /exam/draft — Fast AI plan suggestion (with optional file attachment)
+router.post('/draft', upload.single('attachment'), async (req: AuthRequest, res: Response) => {
     try {
         const { prompt } = req.body;
         if (!prompt) return res.status(400).json({ error: 'prompt zorunlu' });
-        const plan = await generateDraftPlan(prompt);
+
+        const fileBuffer = req.file?.buffer;
+        const fileMime = req.file?.mimetype;
+
+        const plan = await generateDraftPlan(prompt, fileBuffer, fileMime);
         // We return the plan object which now contains isValid and error
-        return res.json({ suggested: plan });
+        // Also return file info so frontend can pass it to confirm
+        const result: any = { suggested: plan };
+        if (req.file) {
+            result.fileBase64 = req.file.buffer.toString('base64');
+            result.fileMime = req.file.mimetype;
+        }
+        return res.json(result);
     } catch (err) {
         console.error('[Draft]', err);
         return res.status(500).json({ error: 'Plan oluşturulamadı' });
@@ -27,7 +59,7 @@ router.post('/draft', async (req: AuthRequest, res: Response) => {
 // POST /exam — Confirm & queue exam generation
 router.post('/', async (req: AuthRequest, res: Response) => {
     try {
-        const { prompt, title, questionCount, durationMin, difficulty, outline, needsAscii, allowedTypes } = req.body;
+        const { prompt, title, questionCount, durationMin, difficulty, outline, needsAscii, allowedTypes, fileBase64, fileMime, isAuto } = req.body;
         if (!prompt || !title) return res.status(400).json({ error: 'prompt ve title zorunlu' });
         const exam = await prisma.exam.create({
             data: {
@@ -38,9 +70,16 @@ router.post('/', async (req: AuthRequest, res: Response) => {
                 durationMin: durationMin || 30,
                 questionCount: questionCount || 10,
                 difficulty: difficulty || 'mixed',
+                isAuto: isAuto || false,
             },
         });
-        await examQueue.add('generate', { examId: exam.id, prompt, plan: { title, questionCount, durationMin, difficulty, outline, needsAscii: needsAscii ?? false, allowedTypes: allowedTypes ?? ['MULTIPLE_CHOICE'] } }, {
+        await examQueue.add('generate', {
+            examId: exam.id,
+            prompt,
+            plan: { title, questionCount, durationMin, difficulty, outline, needsAscii: needsAscii ?? false, allowedTypes: allowedTypes ?? ['MULTIPLE_CHOICE'] },
+            fileBase64: fileBase64 || undefined,
+            fileMime: fileMime || undefined,
+        }, {
             attempts: 3,
             backoff: { type: 'exponential', delay: 10000 },
         });
@@ -60,6 +99,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
             select: {
                 id: true, title: true, status: true, durationMin: true,
                 questionCount: true, difficulty: true, createdAt: true,
+                isAuto: true,
                 attempts: { select: { score: true }, orderBy: { finishedAt: 'desc' }, take: 1 },
             },
         });
@@ -142,7 +182,10 @@ router.post('/:id/attempts', async (req: AuthRequest, res: Response) => {
         const { answers, startedAt } = req.body;
         console.log(`[Attempt] Submitting for exam ${req.params.id}. Answers: ${JSON.stringify(answers)}`);
         // answers: [{ questionId, selectedOption: number | string | null }]
-        const questions = await prisma.question.findMany({ where: { examId: req.params.id as string } });
+        const questions = await prisma.question.findMany({
+            where: { examId: req.params.id as string },
+            orderBy: { orderIndex: 'asc' }
+        });
         if (questions.length === 0) return res.status(400).json({ error: 'Sınav soruları bulunamadı' });
 
         let totalWeight = questions.length;
@@ -153,10 +196,11 @@ router.post('/:id/attempts', async (req: AuthRequest, res: Response) => {
 
         for (const q of questions) {
             const answer = (answers as { questionId: string; selectedOption: any }[])
-                .find(a => a.questionId === q.id);
+                .find(a => a.questionId == q.id); // Use loose equality in case of string/number mismatch
 
             if (!answer || answer.selectedOption === null || answer.selectedOption === undefined || answer.selectedOption === '') {
                 emptyCount++;
+                console.log(`[Attempt] Question ${q.id} (index ${q.orderIndex}) is EMPTY. Answer: ${JSON.stringify(answer)}`);
                 continue;
             }
 

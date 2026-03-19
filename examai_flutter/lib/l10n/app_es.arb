@@ -112,6 +112,10 @@
   "dashboardAutoSave": "Actualizar piloto automático",
   "dashboardAutoActive": "Automatización activa",
   "dashboardScheduleTime": "Hora programada",
-  "dashboardArchiveTitle": "Mi archivo",
-  "dashboardViewAll": "Todo"
+  "dashboardArchiveTitle": "Exámenes Normales",
+  "dashboardAutoExamsTitle": "Exámenes Automáticos",
+  "dashboardViewAll": "Todo",
+  "attachmentSelectTitle": "Seleccionar adjunto",
+  "attachmentSourceGallery": "Galería",
+  "attachmentSourceFiles": "Archivos"
 }

@@ -11,6 +11,7 @@ class Exam {
   final String? aiSummary;
   final DateTime createdAt;
   final double? lastScore;
+  final bool isAuto;
 
   Exam({
     required this.id,
@@ -23,6 +24,7 @@ class Exam {
     this.aiSummary,
     required this.createdAt,
     this.lastScore,
+    this.isAuto = false,
   });
 
   factory Exam.fromJson(Map<String, dynamic> json) {
@@ -40,6 +42,7 @@ class Exam {
       aiSummary: json['aiSummary'],
       createdAt: DateTime.parse(json['createdAt']),
       lastScore: json['lastScore']?.toDouble(),
+      isAuto: json['isAuto'] ?? false,
     );
   }
 }

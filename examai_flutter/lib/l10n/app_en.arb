@@ -133,6 +133,10 @@
   "dashboardAutoSave": "Update Auto-Pilot",
   "dashboardAutoActive": "Automation Active",
   "dashboardScheduleTime": "Schedule Time",
-  "dashboardArchiveTitle": "My Archive",
-  "dashboardViewAll": "All"
+  "dashboardArchiveTitle": "Normal Exams",
+  "dashboardAutoExamsTitle": "Automatic Exams",
+  "dashboardViewAll": "All",
+  "attachmentSelectTitle": "Select Attachment",
+  "attachmentSourceGallery": "Gallery",
+  "attachmentSourceFiles": "Files"
 }

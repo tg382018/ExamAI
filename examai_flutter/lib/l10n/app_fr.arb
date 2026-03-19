@@ -112,6 +112,10 @@
   "dashboardAutoSave": "Mettre à jour le pilote auto",
   "dashboardAutoActive": "Automatisation active",
   "dashboardScheduleTime": "Heure planifiée",
-  "dashboardArchiveTitle": "Mon archive",
-  "dashboardViewAll": "Tout"
+  "dashboardArchiveTitle": "Examens Normaux",
+  "dashboardAutoExamsTitle": "Examens Automatiques",
+  "dashboardViewAll": "Tout",
+  "attachmentSelectTitle": "Sélectionner une pièce jointe",
+  "attachmentSourceGallery": "Galerie",
+  "attachmentSourceFiles": "Fichiers"
 }

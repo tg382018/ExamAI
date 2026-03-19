@@ -133,6 +133,10 @@
   "dashboardAutoSave": "Otomatik Pilotu Güncelle",
   "dashboardAutoActive": "Otomasyon Aktif",
   "dashboardScheduleTime": "Planlanan Saat",
-  "dashboardArchiveTitle": "Arşivim",
-  "dashboardViewAll": "Hepsi"
+  "dashboardArchiveTitle": "Normal Sınavlarım",
+  "dashboardAutoExamsTitle": "Otomatik Sınavlarım",
+  "dashboardViewAll": "Hepsi",
+  "attachmentSelectTitle": "Ek Seçin",
+  "attachmentSourceGallery": "Galeri",
+  "attachmentSourceFiles": "Dosyalar"
 }

@@ -337,8 +337,20 @@ class AppLocalizationsTr extends AppLocalizations {
   String get dashboardScheduleTime => 'Planlanan Saat';
 
   @override
-  String get dashboardArchiveTitle => 'Arşivim';
+  String get dashboardArchiveTitle => 'Normal Sınavlarım';
+
+  @override
+  String get dashboardAutoExamsTitle => 'Otomatik Sınavlarım';
 
   @override
   String get dashboardViewAll => 'Hepsi';
+
+  @override
+  String get attachmentSelectTitle => 'Ek Seçin';
+
+  @override
+  String get attachmentSourceGallery => 'Galeri';
+
+  @override
+  String get attachmentSourceFiles => 'Dosyalar';
 }

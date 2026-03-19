@@ -18,6 +18,25 @@ model User {
   attempts         Attempt[]
   deviceTokens     DeviceToken[]
   exams            Exam[]
+  autoPilotConfig  AutoPilotConfig?
+}
+
+model AutoPilotConfig {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  isActive      Boolean  @default(false)
+  frequency     String   @default("daily")
+  time          String   @default("09:00") // HH:mm format
+  topic         String?
+  subtopic      String?
+  level         String?
+  difficulty    String?
+  questionCount Int      @default(10)
+  type          String   @default("mixed")
+  prompt        String?
+  isPromptTab   Boolean  @default(false)
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id])
 }
 
 model Exam {
@@ -32,6 +51,7 @@ model Exam {
   aiSummary     String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
+  isAuto        Boolean    @default(false)
   attempts      Attempt[]
   user          User       @relation(fields: [userId], references: [id])
   questions     Question[]

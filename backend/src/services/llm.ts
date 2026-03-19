@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import convert from 'heic-convert';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -17,14 +18,54 @@ export interface DraftPlan {
 /**
  * Fast call: Generate a plan from user prompt (used in POST /exam/draft)
  */
-export async function generateDraftPlan(prompt: string): Promise<DraftPlan> {
-    const completion = await openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-4o',
-        temperature: 0.5,
-        messages: [
-            {
-                role: 'system',
-                content: `Sen bir AI sınav oluşturma uygulaması için çalışan uzman bir analiz asistanısın. Kullanıcının sınav talebini incele ve aşağıdaki kurallara göre bir plan veya hata mesajı üret.
+export async function generateDraftPlan(prompt: string, fileBuffer?: Buffer, fileMime?: string): Promise<DraftPlan> {
+    // Build user message content parts
+    const userContent: any[] = [{ type: 'text', text: prompt }];
+
+    let uploadedFileId: string | undefined;
+
+    if (fileBuffer && fileMime) {
+        let finalBuffer = fileBuffer;
+        let finalMime = fileMime;
+
+        // HEIC conversion
+        if (fileMime === 'image/heic' || fileMime === 'image/heif') {
+            try {
+                const outputBuffer = await convert({
+                    buffer: fileBuffer as any,
+                    format: 'JPEG',
+                    quality: 0.8
+                });
+                finalBuffer = Buffer.from(outputBuffer);
+                finalMime = 'image/jpeg';
+            } catch (err) {
+                console.error('[HEIC Conversion Error]', err);
+            }
+        }
+
+        if (finalMime.startsWith('image/') || finalMime === 'image/webp') {
+            // Image: encode as base64 data URL
+            const base64 = finalBuffer.toString('base64');
+            userContent.push({
+                type: 'image_url',
+                image_url: { url: `data:${finalMime};base64,${base64}`, detail: 'high' },
+            });
+        } else if (finalMime === 'application/pdf') {
+            // PDF: upload to OpenAI files API
+            const file = new File([Uint8Array.from(fileBuffer)], 'attachment.pdf', { type: 'application/pdf' });
+            const uploaded = await openai.files.create({ file, purpose: 'assistants' });
+            uploadedFileId = uploaded.id;
+            userContent.push({
+                type: 'file',
+                file: { file_id: uploaded.id },
+            });
+        }
+    }
+
+    const systemContent = fileBuffer
+        ? `Sen bir AI sınav oluşturma uygulaması için çalışan uzman bir analiz asistanısın. Kullanıcının sınav talebini incele ve aşağıdaki kurallara göre bir plan veya hata mesajı üret.
+
+ÖNEMLİ: Kullanıcı ek olarak bir dosya (PDF veya görsel) göndermiş olabilir. Dosyanın içeriğini dikkatlice analiz edip sınav planına dahil et. Dosyadaki konulara göre soru konularını (outline) oluştur.
 
 KURALLAR:
 1. Talebin sınav oluşturma ile bir ilgisi yoksa veya bilgiler bir sınav oluşturmak için (ders adı veya konu eksikliği gibi) çok yetersizse, "isValid": false dön.
@@ -46,18 +87,50 @@ DÖNÜŞ FORMATI:
   "outline": ["konu başlığı 1", "konu başlığı 2"],
   "allowedTypes": ["MULTIPLE_CHOICE", "..."],
   "needsAscii": boolean
-}`,
-            },
-            {
-                role: 'user',
-                content: prompt,
-            },
+}`
+        : `Sen bir AI sınav oluşturma uygulaması için çalışan uzman bir analiz asistanısın. Kullanıcının sınav talebini incele ve aşağıdaki kurallara göre bir plan veya hata mesajı üret.
+
+KURALLAR:
+1. Talebin sınav oluşturma ile bir ilgisi yoksa veya bilgiler bir sınav oluşturmak için (ders adı veya konu eksikliği gibi) çok yetersizse, "isValid": false dön.
+2. "isValid": false durumunda, "error" kısmına neden sınav oluşturulamayacağını açıklayan nazik bir Türkçe mesaj yaz.
+3. Kullanıcı 15'ten fazla soru isterse, soru sayısını otomatik olarak 15 ile sınırla. Soru sayısı belirtilmemişse varsayılan olarak 10 yap.
+4. "allowedTypes" alanı: Kullanıcı talebinde "test", "çoktan seçmeli", "açık uçlu", "klasik", "doğru yanlış" gibi ifadeler geçiyorsa bunlara uygun tipleri dizi olarak dön. Belirtilmemişse varsayılan olarak ["MULTIPLE_CHOICE"] dön.
+   Tipler: "MULTIPLE_CHOICE", "TRUE_FALSE", "OPEN_ENDED"
+5. "needsAscii" alanı: Eğer sınav konusu geometri, fizik veya grafik gerektiren bir konuysa (çizim gerektiriyorsa) true, aksi halde false dön.
+6. Yalnızca JSON döndür.
+
+DÖNÜŞ FORMATI:
+{
+  "isValid": boolean,
+  "error": string | null,
+  "title": "Sınav Başlığı/Konu",
+  "description": "Genel sınav açıklaması ve teknik detaylar",
+  "questionCount": number,
+  "difficulty": "Kolay|Orta|Zor",
+  "outline": ["konu başlığı 1", "konu başlığı 2"],
+  "allowedTypes": ["MULTIPLE_CHOICE", "..."],
+  "needsAscii": boolean
+}`;
+
+    const completion = await openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4o',
+        temperature: 0.5,
+        messages: [
+            { role: 'system', content: systemContent },
+            { role: 'user', content: userContent },
         ],
         response_format: { type: 'json_object' },
     });
+
+    // Clean up uploaded file if any
+    if (uploadedFileId) {
+        try { await openai.files.delete(uploadedFileId); } catch (_) { /* ignore */ }
+    }
+
     const raw = completion.choices[0].message.content || '{}';
     return JSON.parse(raw) as DraftPlan;
 }
+
 
 export interface GeneratedQuestion {
     orderIndex: number;
@@ -77,16 +150,54 @@ export interface GeneratedQuestion {
  */
 export async function generateFullExam(
     prompt: string,
-    plan: DraftPlan
+    plan: DraftPlan,
+    fileBase64?: string,
+    fileMime?: string
 ): Promise<{ questions: GeneratedQuestion[]; summary: string }> {
-    const questionsCompletion = await openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || 'gpt-4o',
-        temperature: 0.4,
-        messages: [
-            {
-                role: 'system',
-                content: `Sen dünyanın en titiz eğitimcisisin. Aşağıdaki plana göre ${plan.questionCount} adet soru üret.
+    // Build user message content parts
+    const userContent: any[] = [{ type: 'text', text: `Prompt: ${prompt}\nPlan: ${JSON.stringify(plan)}` }];
 
+    let uploadedFileId: string | undefined;
+
+    if (fileBase64 && fileMime) {
+        let finalBase64 = fileBase64;
+        let finalMime = fileMime;
+
+        // HEIC conversion
+        if (fileMime === 'image/heic' || fileMime === 'image/heif') {
+            try {
+                const buf = Buffer.from(fileBase64, 'base64');
+                const outputBuffer = await convert({
+                    buffer: buf as any,
+                    format: 'JPEG',
+                    quality: 0.8
+                });
+                finalBase64 = Buffer.from(outputBuffer).toString('base64');
+                finalMime = 'image/jpeg';
+            } catch (err) {
+                console.error('[HEIC Conversion Error]', err);
+            }
+        }
+
+        if (finalMime.startsWith('image/') || finalMime === 'image/webp') {
+            userContent.push({
+                type: 'image_url',
+                image_url: { url: `data:${finalMime};base64,${finalBase64}`, detail: 'high' },
+            });
+        } else if (finalMime === 'application/pdf') {
+            const buf = Buffer.from(fileBase64, 'base64');
+            const file = new File([Uint8Array.from(buf)], 'attachment.pdf', { type: 'application/pdf' });
+            const uploaded = await openai.files.create({ file, purpose: 'assistants' });
+            uploadedFileId = uploaded.id;
+            userContent.push({
+                type: 'file',
+                file: { file_id: uploaded.id },
+            });
+        }
+    }
+
+    const systemContent = `Sen dünyanın en titiz eğitimcisisin. Aşağıdaki plana göre ${plan.questionCount} adet soru üret.
+${fileBase64 ? '\nÖNEMLİ: Kullanıcı ek olarak bir dosya (PDF veya görsel) göndermiştir. Dosyanın içeriğini dikkatlice analiz edip soruları dosya içeriğine göre oluştur.\n' : ''}
 PLANDAKİ SORU TİPLERİ: ${plan.allowedTypes.join(', ')}
 
 KRİTİK TALİMATLAR:
@@ -115,15 +226,22 @@ JSON FORMATI:
 }
 
 ÖNEMLİ: "correctAnswer" alanı, açık uçlu sorular için tüm kabul edilebilir varyasyonları veya detaylı bir değerlendirme anahtarını içermelidir (Örn: "Nokta veya 'da eki veya kesme işareti ile ayrılmış herhangi bir doğru ek").
-`,
-            },
-            {
-                role: 'user',
-                content: `Prompt: ${prompt}\nPlan: ${JSON.stringify(plan)}`,
-            },
+`;
+
+    const questionsCompletion = await openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4o',
+        temperature: 0.4,
+        messages: [
+            { role: 'system', content: systemContent },
+            { role: 'user', content: userContent },
         ],
         response_format: { type: 'json_object' },
     });
+
+    // Clean up uploaded file if any
+    if (uploadedFileId) {
+        try { await openai.files.delete(uploadedFileId); } catch (_) { /* ignore */ }
+    }
 
     const questionsRaw = JSON.parse(questionsCompletion.choices[0].message.content || '{"questions":[]}');
 
@@ -149,6 +267,7 @@ JSON FORMATI:
         summary: summaryCompletion.choices[0].message.content || '',
     };
 }
+
 
 export interface GradingResult {
     [questionId: string]: {

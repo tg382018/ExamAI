@@ -72,16 +72,35 @@ class ApiService {
   }
 
   // Exams
-  Future<Map<String, dynamic>> getDraftPlan(String prompt) async {
+  Future<Map<String, dynamic>> getDraftPlan(String prompt,
+      {File? attachment}) async {
+    if (attachment != null) {
+      final formData = FormData.fromMap({
+        'prompt': prompt,
+        'attachment': await MultipartFile.fromFile(
+          attachment.path,
+          filename: attachment.path.split('/').last,
+        ),
+      });
+      final res = await _dio.post('/exam/draft',
+          data: formData,
+          options: Options(receiveTimeout: const Duration(seconds: 60)));
+      return res.data;
+    }
     final res = await _dio.post('/exam/draft', data: {'prompt': prompt});
-    return res.data['suggested'];
+    return {'suggested': res.data['suggested']};
   }
 
-  Future<String> confirmExam(Map<String, dynamic> plan, String prompt) async {
-    final res = await _dio.post('/exam', data: {
+  Future<String> confirmExam(Map<String, dynamic> plan, String prompt,
+      {String? fileBase64, String? fileMime, bool isAuto = false}) async {
+    final data = {
       ...plan,
       'prompt': prompt,
-    });
+      if (fileBase64 != null) 'fileBase64': fileBase64,
+      if (fileMime != null) 'fileMime': fileMime,
+      'isAuto': isAuto,
+    };
+    final res = await _dio.post('/exam', data: data);
     return res.data['examId'];
   }
 
@@ -123,5 +142,15 @@ class ApiService {
   Future<void> registerDeviceToken(String token, String platform) async {
     await _dio
         .post('/device-token', data: {'token': token, 'platform': platform});
+  }
+
+  // Auto-Pilot
+  Future<Map<String, dynamic>?> getAutoPilotConfig() async {
+    final res = await _dio.get('/auto-pilot');
+    return res.data;
+  }
+
+  Future<void> saveAutoPilotConfig(Map<String, dynamic> config) async {
+    await _dio.post('/auto-pilot', data: config);
   }
 }

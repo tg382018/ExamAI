@@ -171,80 +171,86 @@ class _ExamDetailScreenState extends ConsumerState<ExamDetailScreen> {
         },
         child: examAsync.when(
           data: (exam) => questionsAsync.when(
-            data: (questions) => Column(
-              children: [
-                LinearProgressIndicator(
-                  value: (questions.isEmpty)
-                      ? 0
-                      : (_currentIndex + 1) / questions.length,
-                  backgroundColor: Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.1),
-                ),
-                Expanded(
-                  child: PageView.builder(
-                    controller: _pageController,
-                    onPageChanged: (index) =>
-                        setState(() => _currentIndex = index),
-                    itemCount: questions.length,
-                    itemBuilder: (context, index) {
-                      final q = questions[index];
-                      if (q.type == QuestionType.open_ended &&
-                          !_controllers.containsKey(q.id)) {
-                        _controllers[q.id] = TextEditingController();
-                      }
-                      return IgnorePointer(
-                        ignoring: _isTimeUp,
-                        child: _QuestionView(
-                          question: q,
-                          index: index,
-                          total: questions.length,
-                          selectedValue: _answers[q.id],
-                          controller: _controllers[q.id],
-                          onSelect: (opt) =>
-                              setState(() => _answers[q.id] = opt),
-                        ),
-                      );
-                    },
+            data: (questions) {
+              // Pre-initialize controllers for open-ended questions
+              for (var q in questions) {
+                if (q.type == QuestionType.open_ended &&
+                    !_controllers.containsKey(q.id)) {
+                  _controllers[q.id] = TextEditingController();
+                }
+              }
+
+              return Column(
+                children: [
+                  LinearProgressIndicator(
+                    value: (questions.isEmpty)
+                        ? 0
+                        : (_currentIndex + 1) / questions.length,
+                    backgroundColor: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withValues(alpha: 0.1),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Row(
-                    children: [
-                      if (_currentIndex > 0)
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => _pageController.previousPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
+                  Expanded(
+                    child: PageView.builder(
+                      controller: _pageController,
+                      onPageChanged: (index) =>
+                          setState(() => _currentIndex = index),
+                      itemCount: questions.length,
+                      itemBuilder: (context, index) {
+                        final q = questions[index];
+                        return IgnorePointer(
+                          ignoring: _isTimeUp,
+                          child: _QuestionView(
+                            question: q,
+                            index: index,
+                            total: questions.length,
+                            selectedValue: _answers[q.id],
+                            controller: _controllers[q.id],
+                            onSelect: (opt) =>
+                                setState(() => _answers[q.id] = opt),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Row(
+                      children: [
+                        if (_currentIndex > 0)
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _pageController.previousPage(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              ),
+                              child: const Text('Geri'),
                             ),
-                            child: const Text('Geri'),
+                          ),
+                        if (_currentIndex > 0) const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _isTimeUp
+                                ? null
+                                : (_currentIndex < questions.length - 1
+                                    ? () => _pageController.nextPage(
+                                          duration:
+                                              const Duration(milliseconds: 300),
+                                          curve: Curves.easeInOut,
+                                        )
+                                    : _submit),
+                            child: Text(_currentIndex < questions.length - 1
+                                ? 'Sonraki'
+                                : 'Sınavı Bitir'),
                           ),
                         ),
-                      if (_currentIndex > 0) const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _isTimeUp
-                              ? null
-                              : (_currentIndex < questions.length - 1
-                                  ? () => _pageController.nextPage(
-                                        duration:
-                                            const Duration(milliseconds: 300),
-                                        curve: Curves.easeInOut,
-                                      )
-                                  : _submit),
-                          child: Text(_currentIndex < questions.length - 1
-                              ? 'Sonraki'
-                              : 'Sınavı Bitir'),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              );
+            },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, __) => Center(child: Text('Hata: $e')),
           ),

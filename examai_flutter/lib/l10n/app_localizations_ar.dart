@@ -338,8 +338,20 @@ class AppLocalizationsAr extends AppLocalizations {
   String get dashboardScheduleTime => 'الوقت المحدد';
 
   @override
-  String get dashboardArchiveTitle => 'أرشيفي';
+  String get dashboardArchiveTitle => 'الامتحانات العادية';
+
+  @override
+  String get dashboardAutoExamsTitle => 'الامتحانات التلقائية';
 
   @override
   String get dashboardViewAll => 'الكل';
+
+  @override
+  String get attachmentSelectTitle => 'اختر المرفق';
+
+  @override
+  String get attachmentSourceGallery => 'المعرض';
+
+  @override
+  String get attachmentSourceFiles => 'الملفات';
 }

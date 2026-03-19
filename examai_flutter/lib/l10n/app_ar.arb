@@ -112,6 +112,10 @@
   "dashboardAutoSave": "تحديث الطيار الآلي",
   "dashboardAutoActive": "الأتمتة نشطة",
   "dashboardScheduleTime": "الوقت المحدد",
-  "dashboardArchiveTitle": "أرشيفي",
-  "dashboardViewAll": "الكل"
+  "dashboardArchiveTitle": "الامتحانات العادية",
+  "dashboardAutoExamsTitle": "الامتحانات التلقائية",
+  "dashboardViewAll": "الكل",
+  "attachmentSelectTitle": "اختر المرفق",
+  "attachmentSourceGallery": "المعرض",
+  "attachmentSourceFiles": "الملفات"
 }

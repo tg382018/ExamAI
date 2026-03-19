@@ -739,14 +739,38 @@ abstract class AppLocalizations {
   /// No description provided for @dashboardArchiveTitle.
   ///
   /// In en, this message translates to:
-  /// **'My Archive'**
+  /// **'Normal Exams'**
   String get dashboardArchiveTitle;
+
+  /// No description provided for @dashboardAutoExamsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic Exams'**
+  String get dashboardAutoExamsTitle;
 
   /// No description provided for @dashboardViewAll.
   ///
   /// In en, this message translates to:
   /// **'All'**
   String get dashboardViewAll;
+
+  /// No description provided for @attachmentSelectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Attachment'**
+  String get attachmentSelectTitle;
+
+  /// No description provided for @attachmentSourceGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get attachmentSourceGallery;
+
+  /// No description provided for @attachmentSourceFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get attachmentSourceFiles;
 }
 
 class _AppLocalizationsDelegate

@@ -8,13 +8,15 @@ interface GenerateExamJob {
     examId: string;
     prompt: string;
     plan: DraftPlan;
+    fileBase64?: string;
+    fileMime?: string;
 }
 
 export function startWorker() {
     const worker = new Worker<GenerateExamJob>(
         'exam-generation',
         async (job: Job<GenerateExamJob>) => {
-            const { examId, prompt, plan } = job.data;
+            const { examId, prompt, plan, fileBase64, fileMime } = job.data;
             console.log(`[Worker] Starting exam generation: ${examId}`);
 
             try {
@@ -25,7 +27,11 @@ export function startWorker() {
                 });
 
                 // 2. Generate via LLM (multi-step)
-                const { questions, summary } = await generateFullExam(prompt, plan);
+                const { questions: rawQuestions, summary } = await generateFullExam(prompt, plan, fileBase64, fileMime);
+
+                // Enforce requested count (slice if LLM generated more)
+                const requestedCount = plan.questionCount || 10;
+                const questions = rawQuestions.slice(0, requestedCount);
 
                 // Helper to remove null bytes that cause Postgres UTF8 errors
                 const sanitizeString = (str: string | undefined | null) => {
@@ -34,6 +40,7 @@ export function startWorker() {
                 };
 
                 // 3. Save questions to DB
+                await prisma.question.deleteMany({ where: { examId } }); // Ensure idempotency if job retries
                 await prisma.question.createMany({
                     data: questions.map(q => {
                         let correctIndex: number | null = null;

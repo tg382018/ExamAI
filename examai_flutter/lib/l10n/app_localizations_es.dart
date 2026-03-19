@@ -340,8 +340,20 @@ class AppLocalizationsEs extends AppLocalizations {
   String get dashboardScheduleTime => 'Hora programada';
 
   @override
-  String get dashboardArchiveTitle => 'Mi archivo';
+  String get dashboardArchiveTitle => 'Exámenes Normales';
+
+  @override
+  String get dashboardAutoExamsTitle => 'Exámenes Automáticos';
 
   @override
   String get dashboardViewAll => 'Todo';
+
+  @override
+  String get attachmentSelectTitle => 'Seleccionar adjunto';
+
+  @override
+  String get attachmentSourceGallery => 'Galería';
+
+  @override
+  String get attachmentSourceFiles => 'Archivos';
 }

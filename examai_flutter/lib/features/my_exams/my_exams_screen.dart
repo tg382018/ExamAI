@@ -62,15 +62,19 @@ class _MyExamsScreenState extends ConsumerState<MyExamsScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.note_alt_outlined,
-                      size: 64, color: Colors.white24),
+                  Icon(Icons.note_alt_outlined,
+                      size: 64,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.2)),
                   const SizedBox(height: 16),
                   Text(l10n.myExamsEmpty,
-                      style: const TextStyle(color: Colors.white60)),
-                  TextButton(
-                    onPressed: () => context.push('/my-exams/create'),
-                    child: Text(l10n.myExamsCreate),
-                  ),
+                      style: TextStyle(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.5))),
                 ],
               ),
             )
@@ -85,11 +89,6 @@ class _MyExamsScreenState extends ConsumerState<MyExamsScreen> {
                 },
               ),
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/my-exams/create'),
-        icon: const Icon(Icons.add),
-        label: Text(l10n.myExamsCreate),
-      ),
     );
   }
 }
@@ -101,6 +100,7 @@ class _ExamCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -122,8 +122,8 @@ class _ExamCard extends StatelessWidget {
                       exam.title,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: exam.status == ExamStatus.ready
-                                ? Colors.white
-                                : Colors.white54,
+                                ? onSurface
+                                : onSurface.withValues(alpha: 0.5),
                           ),
                     ),
                   ),
@@ -133,20 +133,22 @@ class _ExamCard extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.calendar_today,
-                      size: 14, color: Colors.white38),
+                  Icon(Icons.calendar_today,
+                      size: 14, color: onSurface.withValues(alpha: 0.38)),
                   const SizedBox(width: 4),
                   Text(
                     DateFormat('dd.MM.yyyy HH:mm').format(exam.createdAt),
-                    style: const TextStyle(color: Colors.white38, fontSize: 12),
+                    style: TextStyle(
+                        color: onSurface.withValues(alpha: 0.38), fontSize: 12),
                   ),
                   const SizedBox(width: 16),
-                  const Icon(Icons.question_answer,
-                      size: 14, color: Colors.white38),
+                  Icon(Icons.question_answer,
+                      size: 14, color: onSurface.withValues(alpha: 0.38)),
                   const SizedBox(width: 4),
                   Text(
                     l10n.examQuestionCount(exam.questionCount),
-                    style: const TextStyle(color: Colors.white38, fontSize: 12),
+                    style: TextStyle(
+                        color: onSurface.withValues(alpha: 0.38), fontSize: 12),
                   ),
                 ],
               ),
@@ -156,15 +158,16 @@ class _ExamCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
+                    color: onSurface.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(l10n.examLastScore,
-                          style: const TextStyle(
-                              color: Colors.white60, fontSize: 13)),
+                          style: TextStyle(
+                              color: onSurface.withValues(alpha: 0.6),
+                              fontSize: 13)),
                       const SizedBox(width: 4),
                       Text(
                         '%${exam.lastScore}',

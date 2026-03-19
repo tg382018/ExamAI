@@ -156,8 +156,10 @@ class ExamsNotifier extends StateNotifier<List<Exam>> {
     state = data.map((e) => Exam.fromJson(e)).toList();
   }
 
-  Future<String> proposeExam(Map<String, dynamic> plan, String prompt) async {
-    return await _api.confirmExam(plan, prompt);
+  Future<String> proposeExam(Map<String, dynamic> plan, String prompt,
+      {String? fileBase64, String? fileMime, bool isAuto = false}) async {
+    return await _api.confirmExam(plan, prompt,
+        fileBase64: fileBase64, fileMime: fileMime, isAuto: isAuto);
   }
 }
 
