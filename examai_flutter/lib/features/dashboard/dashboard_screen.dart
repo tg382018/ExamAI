@@ -11,6 +11,7 @@ import '../../shared/widgets/widgets.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'topic_data.dart';
+import 'auto_pilot_detail_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -51,7 +52,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   File? _autoAttachedFile;
   bool _autoIsPromptTab = true;
   String _autoLevel = 'University';
-  String _autoTopic = 'Mathematics';
+  String _autoTopic = '';
   String _autoSubtopic = 'All';
   int _autoCount = 10;
   String _autoType = 'Multiple Choice';
@@ -59,8 +60,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final TextEditingController _autoPromptController = TextEditingController();
   final TextEditingController _autoSubtopicController = TextEditingController();
   final FocusNode _autoSubtopicFocusNode = FocusNode();
-  String _autoDifficulty = 'mixed';
-  bool _fetchingConfig = false;
+  List<AutoPilotConfig> _autoPilotConfigs = [];
 
   Timer? _pollingTimer;
 
@@ -68,84 +68,76 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(examsProvider.notifier).fetchExams());
-    _fetchAutoPilotConfig();
+    _fetchAutoPilotConfigs();
     _startPolling();
   }
 
-  Future<void> _fetchAutoPilotConfig() async {
-    setState(() => _fetchingConfig = true);
+  Future<void> _fetchAutoPilotConfigs() async {
+    setState(() {});
     try {
       final api = ref.read(apiServiceProvider);
-      final config = await api.getAutoPilotConfig();
-
-      if (config != null && config['isActive'] != null) {
-        setState(() {
-          final isActive = config['isActive'] ?? false;
-          _autoFreq = isActive ? 'Daily' : 'Passive';
-
-          final timeStr = config['time'] ?? "09:00";
-          final parts = timeStr.split(':');
-          if (parts.length == 2) {
-            _autoTime = TimeOfDay(
-                hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-          }
-
-          _autoTopic = config['topic'] ?? 'Mathematics';
-          _autoSubtopic = config['subtopic'] ?? 'All';
-          _autoLevel = config['level'] ?? 'University';
-          _autoDifficulty = config['difficulty'] ?? 'mixed';
-          _autoCount = config['questionCount'] ?? 10;
-          _autoType = config['type'] ?? 'Multiple Choice';
-          _autoIsPromptTab = config['isPromptTab'] ?? true;
-          _autoPromptController.text = config['prompt'] ?? '';
-        });
-      }
+      final configs = await api.getAutoPilotConfigs();
+      setState(() {
+        _autoPilotConfigs =
+            configs.map((c) => AutoPilotConfig.fromJson(c)).toList();
+      });
     } catch (e) {
       debugPrint('[AutoPilot Fetch] Error: $e');
     } finally {
-      setState(() => _fetchingConfig = false);
+      setState(() {});
     }
   }
 
-  Future<void> _saveAutoPilotConfig() async {
+  Future<void> _saveAutoPilotConfig({bool showSnackbar = true}) async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _loading = true);
     try {
-      final api = ref.read(apiServiceProvider);
-
-      final hour = _autoTime.hour.toString().padLeft(2, '0');
-      final minute = _autoTime.minute.toString().padLeft(2, '0');
-      final timeStr = "$hour:$minute";
-
       final config = {
         'isActive': _autoFreq != 'Passive',
         'frequency': _autoFreq.toLowerCase(),
-        'time': timeStr,
-        'dayOfWeek': _autoDay,
+        'time':
+            '${_autoTime.hour.toString().padLeft(2, '0')}:${_autoTime.minute.toString().padLeft(2, '0')}',
+        'dayOfWeek': _autoFreq == 'Weekly' ? _autoDay : null,
         'topic': _autoTopic,
-        'subtopic': _autoSubtopic,
-        'level': _autoLevel,
-        'difficulty': _autoDifficulty,
+        'subtopic': _autoSubtopic == 'All' ? null : _autoSubtopic,
+        'level': _autoLevel.toLowerCase(),
         'questionCount': _autoCount,
-        'type': _autoType,
-        'isPromptTab': _autoIsPromptTab,
+        'type': _autoType.toLowerCase().replaceAll(' ', '_'),
+        'language': Localizations.localeOf(context).languageCode,
         'prompt': _autoPromptController.text,
+        'isPromptTab': _autoIsPromptTab,
+        'title': _autoIsPromptTab
+            ? (_autoPromptController.text.length > 30
+                ? _autoPromptController.text.substring(0, 30) + '...'
+                : _autoPromptController.text)
+            : '${_getLevelTitle(_autoLevel, l10n)} $_autoTopic',
       };
 
+      final api = ref.read(apiServiceProvider);
       await api.saveAutoPilotConfig(config);
+      await _fetchAutoPilotConfigs(); // Refresh the list
 
-      if (mounted) {
+      if (mounted && showSnackbar) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Otomatik Pilot başarıyla güncellendi! ✨'),
+            content: Text('Otomatik Sınav Talimatı Kaydedildi! ✨'),
             backgroundColor: Color(0xFF10B981),
           ),
         );
       }
+
+      // Reset creation state
+      setState(() {
+        _autoPromptController.clear();
+        _autoTopic = _topicData.keys.first;
+        _autoSubtopic = 'All';
+        _autoSubtopics.clear();
+        _autoAttachedFile = null;
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Hata: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text('Hata: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -318,6 +310,63 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   : 'ASCII: Hayır'),
                         ],
                       ),
+                      if (isAuto) ...[
+                        const SizedBox(height: 24),
+                        Text(
+                          'Otomatik Pilot Takvimi:',
+                          style: GoogleFonts.outfit(
+                              color: isDark ? Colors.white70 : Colors.black54,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                                color:
+                                    const Color(0xFF10B981).withOpacity(0.1)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.auto_awesome,
+                                  color: Color(0xFF10B981), size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _autoFreq == 'Daily'
+                                          ? 'Her Gün'
+                                          : _autoFreq == 'Weekly'
+                                              ? 'Her Hafta (${_getDayName(_autoDay ?? 1, AppLocalizations.of(context)!)})'
+                                              : 'Her Ay (${_autoDay}. Gün)',
+                                      style: GoogleFonts.outfit(
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Saat: ${_autoTime.format(context)} aktif olacak.',
+                                      style: GoogleFonts.outfit(
+                                          color: isDark
+                                              ? Colors.white70
+                                              : Colors.black54,
+                                          fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       Text(
                         'Kapsanan Konular:',
@@ -362,30 +411,44 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 child: ElevatedButton(
                   onPressed: () async {
                     // Stage 3: Confirm and queue background generation
-                    await ref.read(examsProvider.notifier).proposeExam(
-                        plan, finalPrompt,
-                        fileBase64: fileBase64,
-                        fileMime: fileMime,
-                        isAuto: isAuto);
-                    if (mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                              'Sınavınız hazırlanıyor, bitince bildirim alacaksınız. ✨'),
-                          backgroundColor: const Color(0xFF10B981),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                        ),
-                      );
-                      // Refresh exams list to see the "QUEUED" exam
-                      ref.read(examsProvider.notifier).fetchExams();
-                      // Clear the prompt input and attachment
-                      if (isAuto) {
+                    if (isAuto) {
+                      await _saveAutoPilotConfig(showSnackbar: false);
+                      if (mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Otomatik Sınav Planlandı! ✨'),
+                            backgroundColor: const Color(0xFF10B981),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                        );
+                        // Clear the prompt input and attachment
                         _autoPromptController.clear();
                         setState(() => _autoAttachedFile = null);
-                      } else {
+                      }
+                    } else {
+                      await ref.read(examsProvider.notifier).proposeExam(
+                          plan, finalPrompt,
+                          fileBase64: fileBase64,
+                          fileMime: fileMime,
+                          isAuto: isAuto);
+                      if (mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text(
+                                'Sınavınız hazırlanıyor, bitince bildirim alacaksınız. ✨'),
+                            backgroundColor: const Color(0xFF10B981),
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                        );
+                        // Refresh exams list to see the "QUEUED" exam
+                        ref.read(examsProvider.notifier).fetchExams();
+                        // Clear the prompt input and attachment
                         _promptController.clear();
                         setState(() => _attachedFile = null);
                       }
@@ -1537,7 +1600,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     mainAxisSpacing: 8,
                     crossAxisSpacing: 8,
                   ),
-                  itemCount: 31,
+                  itemCount: 29,
                   itemBuilder: (context, index) {
                     final day = index + 1;
                     final isSelected = (_autoDay ?? 1) == day;
@@ -1594,12 +1657,26 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 20),
-            Text(label,
-                style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold)),
+            Stack(
+              children: [
+                Center(
+                  child: Text(label,
+                      style: GoogleFonts.outfit(
+                          color: _isDark ? Colors.white : Colors.black87,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold)),
+                ),
+                Positioned(
+                  right: 0,
+                  top: -8,
+                  child: IconButton(
+                    icon: Icon(Icons.close,
+                        color: _isDark ? Colors.white60 : Colors.black45),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
             Flexible(
               child: ListView.separated(
@@ -2055,7 +2132,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       width: double.infinity,
       height: 50,
       child: ElevatedButton(
-        onPressed: _loading ? null : _saveAutoPilotConfig,
+        onPressed: _loading ? null : () => _generateExam(isAuto: true),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.1),
           foregroundColor: const Color(0xFF10B981),
@@ -2081,6 +2158,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Widget _buildExamsListCard(
       String title, List<Exam> exams, AppLocalizations l10n, IconData icon) {
+    final bool isAutoList = title == l10n.dashboardAutoExamsTitle;
+
     return GlassCard(
       child: Column(
         children: [
@@ -2098,30 +2177,56 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           fontWeight: FontWeight.bold)),
                 ],
               ),
-              InkWell(
-                onTap: () => context.push('/my-exams/list'),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Text(l10n.dashboardViewAll,
-                      style: GoogleFonts.outfit(
-                          color: const Color(0xFF10B981),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold)),
+              if (!isAutoList)
+                InkWell(
+                  onTap: () => context.push('/my-exams/list'),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: Text(l10n.dashboardViewAll,
+                        style: GoogleFonts.outfit(
+                            color: const Color(0xFF10B981),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold)),
+                  ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 20),
-          if (exams.isEmpty)
+          if (isAutoList)
+            if (_autoPilotConfigs.isEmpty)
+              const Center(
+                  child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Text('Aktif bir otomatik sınav talimatınız yok...',
+                          style: TextStyle(color: Colors.white38))))
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _autoPilotConfigs.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 16),
+                itemBuilder: (context, index) => _AutoPilotInstructionCard(
+                  config: _autoPilotConfigs[index],
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AutoPilotDetailScreen(
+                          config: _autoPilotConfigs[index],
+                        ),
+                      ),
+                    );
+                    if (result == true) _fetchAutoPilotConfigs();
+                  },
+                ),
+              )
+          else if (exams.isEmpty)
             Center(
                 child: Padding(
                     padding: const EdgeInsets.all(20),
-                    child: Text(
-                        title == l10n.dashboardAutoExamsTitle
-                            ? 'Henüz otomatik sınav yok...'
-                            : 'Henüz normal sınav yok...',
+                    child: Text('Henüz normal sınav yok...',
                         style: const TextStyle(color: Colors.white38))))
           else
             ListView.separated(
@@ -2129,8 +2234,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               physics: const NeverScrollableScrollPhysics(),
               itemCount: exams.length > 3 ? 3 : exams.length,
               separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, index) =>
-                  _ArchiveListItem(exam: exams[index]),
+              itemBuilder: (context, index) => _ArchiveListItem(
+                exam: exams[index],
+                onShowDuration: _showDurationPicker,
+              ),
             ),
         ],
       ),
@@ -2206,6 +2313,153 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       borderRadius: BorderRadius.circular(10)),
                 ))
             .toList(),
+      ),
+    );
+  }
+
+  void _showDurationPicker(BuildContext context, Exam exam) {
+    int selectedDuration = 10;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => GlassCard(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Sınav Süresini Ayarla',
+                style: GoogleFonts.outfit(
+                  color: isDark ? Colors.white : Colors.black87,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Sınavı kaç dakikada tamamlamak istersin?',
+                style: GoogleFonts.outfit(
+                  color: isDark ? Colors.white60 : Colors.black45,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _DurationBtn(
+                    icon: Icons.remove,
+                    onTap: selectedDuration > 5
+                        ? () => setModalState(() => selectedDuration -= 5)
+                        : null,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Text(
+                      '$selectedDuration dk',
+                      style: GoogleFonts.outfit(
+                        color: isDark ? Colors.white : Colors.black87,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  _DurationBtn(
+                    icon: Icons.add,
+                    onTap: selectedDuration < 120
+                        ? () => setModalState(() => selectedDuration += 5)
+                        : null,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    context.push(
+                        '/my-exams/${exam.id}?duration=$selectedDuration');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Sınava Başla',
+                    style: GoogleFonts.outfit(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AutoPilotInstructionCard extends StatelessWidget {
+  final AutoPilotConfig config;
+  final VoidCallback onTap;
+
+  const _AutoPilotInstructionCard({required this.config, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: isDark ? Colors.white.withOpacity(0.1) : Colors.black12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.auto_awesome,
+                  color: Color(0xFF10B981), size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    config.title ?? config.topic ?? 'Otomatik Sınav',
+                    style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  Text(
+                    '${config.frequency.toUpperCase()} - ${config.time}',
+                    style: GoogleFonts.outfit(
+                        color: isDark ? Colors.white60 : Colors.black54,
+                        fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }
@@ -2409,7 +2663,8 @@ class _ScheduleCard extends StatelessWidget {
 
 class _ArchiveListItem extends StatelessWidget {
   final Exam exam;
-  const _ArchiveListItem({required this.exam});
+  final Function(BuildContext, Exam) onShowDuration;
+  const _ArchiveListItem({required this.exam, required this.onShowDuration});
 
   @override
   Widget build(BuildContext context) {
@@ -2425,7 +2680,7 @@ class _ArchiveListItem extends StatelessWidget {
       ),
       child: InkWell(
         onTap: exam.status == ExamStatus.ready
-            ? () => _showDurationPicker(context, exam)
+            ? () => onShowDuration(context, exam)
             : null,
         borderRadius: BorderRadius.circular(20),
         child: Row(
@@ -2492,95 +2747,6 @@ class _ArchiveListItem extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  void _showDurationPicker(BuildContext context, Exam exam) {
-    int selectedDuration = 10;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => GlassCard(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Sınav Süresini Ayarla',
-                style: GoogleFonts.outfit(
-                  color: isDark ? Colors.white : Colors.black87,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Sınavı kaç dakikada tamamlamak istersin?',
-                style: GoogleFonts.outfit(
-                  color: isDark ? Colors.white60 : Colors.black45,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _DurationBtn(
-                    icon: Icons.remove,
-                    onTap: selectedDuration > 5
-                        ? () => setModalState(() => selectedDuration -= 5)
-                        : null,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Text(
-                      '$selectedDuration dk',
-                      style: GoogleFonts.outfit(
-                        color: isDark ? Colors.white : Colors.black87,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  _DurationBtn(
-                    icon: Icons.add,
-                    onTap: selectedDuration < 120
-                        ? () => setModalState(() => selectedDuration += 5)
-                        : null,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    context.push(
-                        '/my-exams/${exam.id}?duration=$selectedDuration');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'Sınava Başla',
-                    style: GoogleFonts.outfit(
-                        fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
         ),
       ),
     );

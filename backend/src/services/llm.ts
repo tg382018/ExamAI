@@ -13,6 +13,7 @@ export interface DraftPlan {
     outline: string[];
     needsAscii: boolean;
     allowedTypes: string[]; // ['MULTIPLE_CHOICE', 'TRUE_FALSE', 'OPEN_ENDED']
+    language?: string;
 }
 
 /**
@@ -152,7 +153,8 @@ export async function generateFullExam(
     prompt: string,
     plan: DraftPlan,
     fileBase64?: string,
-    fileMime?: string
+    fileMime?: string,
+    language: string = 'tr'
 ): Promise<{ questions: GeneratedQuestion[]; summary: string }> {
     // Build user message content parts
     const userContent: any[] = [{ type: 'text', text: `Prompt: ${prompt}\nPlan: ${JSON.stringify(plan)}` }];
@@ -226,6 +228,8 @@ JSON FORMATI:
 }
 
 ÖNEMLİ: "correctAnswer" alanı, açık uçlu sorular için tüm kabul edilebilir varyasyonları veya detaylı bir değerlendirme anahtarını içermelidir (Örn: "Nokta veya 'da eki veya kesme işareti ile ayrılmış herhangi bir doğru ek").
+
+DİL: Tüm soruları ve açıklamaları şu dilde oluştur: ${language.toUpperCase()}
 `;
 
     const questionsCompletion = await openai.chat.completions.create({

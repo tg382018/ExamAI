@@ -328,7 +328,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get dashboardAutoTime => 'Saat Seç';
 
   @override
-  String get dashboardAutoSave => 'Otomatik Pilotu Güncelle';
+  String get dashboardAutoSave => 'Otomatik Sınav Planla';
 
   @override
   String get dashboardAutoActive => 'Otomasyon Aktif';

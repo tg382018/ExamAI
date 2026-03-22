@@ -15,15 +15,15 @@ export const notificationQueue = new Queue('auto-pilot-notifications', {
 
 export const startAutoPilotWorker = () => {
     const worker = new Worker('auto-pilot-trigger', async (job: Job) => {
-        const { userId } = job.data;
-        console.log(`[AutoPilot Worker] Triggered for user ${userId}`);
+        const { userId, autoPilotConfigId } = job.data;
+        console.log(`[AutoPilot Worker] Triggered for user ${userId}, config ${autoPilotConfigId}`);
 
         const config = await prisma.autoPilotConfig.findUnique({
-            where: { userId },
+            where: { id: autoPilotConfigId },
         });
 
         if (!config || !config.isActive) {
-            console.log(`[AutoPilot Worker] Config inactive for ${userId}. Skipping.`);
+            console.log(`[AutoPilot Worker] Config ${autoPilotConfigId} inactive or missing. Skipping.`);
             return;
         }
 
@@ -33,18 +33,19 @@ export const startAutoPilotWorker = () => {
             prompt = `Automated ${config.type} exam for ${config.level} about ${config.topic}. Subtopic: ${config.subtopic}. Question count: ${config.questionCount}.`;
         }
 
-        const title = `Auto ${config.topic || 'Sınav'} - ${new Date().toLocaleDateString()}`;
+        const title = config.title || `Auto ${config.topic || 'Sınav'} - ${new Date().toLocaleDateString()}`;
 
         const exam = await prisma.exam.create({
             data: {
                 userId,
+                autoPilotConfigId,
                 title,
                 prompt: prompt || 'Auto Pilot Exam',
                 status: 'QUEUED',
                 durationMin: 30, // Default for auto
                 questionCount: config.questionCount,
-                difficulty: config.difficulty || 'mixed',
                 isAuto: true,
+                language: config.language || 'tr',
             },
         });
 
@@ -56,11 +57,11 @@ export const startAutoPilotWorker = () => {
                 title,
                 questionCount: config.questionCount,
                 durationMin: 30,
-                difficulty: config.difficulty || 'mixed',
                 outline: [], // LLM will decide
                 needsAscii: false,
                 allowedTypes: [config.type === 'mixed' ? 'MULTIPLE_CHOICE' : config.type.toUpperCase()]
             },
+            language: config.language || 'tr'
         });
 
         // 3. Schedule a notification job (The target time: now + 2 mins)

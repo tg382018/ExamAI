@@ -145,12 +145,18 @@ class ApiService {
   }
 
   // Auto-Pilot
-  Future<Map<String, dynamic>?> getAutoPilotConfig() async {
+  Future<List<dynamic>> getAutoPilotConfigs() async {
     final res = await _dio.get('/auto-pilot');
     return res.data;
   }
 
-  Future<void> saveAutoPilotConfig(Map<String, dynamic> config) async {
-    await _dio.post('/auto-pilot', data: config);
+  Future<Map<String, dynamic>> saveAutoPilotConfig(
+      Map<String, dynamic> config) async {
+    final res = await _dio.post('/auto-pilot', data: config);
+    return res.data;
+  }
+
+  Future<void> deleteAutoPilotConfig(String id) async {
+    await _dio.delete('/auto-pilot/$id');
   }
 }

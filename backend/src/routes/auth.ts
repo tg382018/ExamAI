@@ -36,7 +36,7 @@ router.post('/register', async (req: Request, res: Response) => {
                     verificationCode,
                     isVerified: false
                 },
-                select: { id: true, email: true, name: true },
+                select: { id: true, email: true, name: true, subscriptionTier: true },
             });
         } else {
             // Create brand new user
@@ -48,7 +48,7 @@ router.post('/register', async (req: Request, res: Response) => {
                     verificationCode,
                     isVerified: false
                 },
-                select: { id: true, email: true, name: true },
+                select: { id: true, email: true, name: true, subscriptionTier: true },
             });
         }
 
@@ -57,7 +57,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
         return res.status(201).json({
             message: 'Kayıt başarılı. Lütfen e-postanıza gönderilen doğrulama kodunu girin.',
-            user: { id: user.id, email: user.email, name: user.name }
+            user: { id: user.id, email: user.email, name: user.name, subscriptionTier: user.subscriptionTier }
         });
     } catch (err) {
         console.error(err);
@@ -91,7 +91,7 @@ router.post('/verify', async (req: Request, res: Response) => {
 
         return res.json({
             message: 'E-posta başarıyla doğrulandı',
-            user: { id: user.id, email: user.email, name: user.name },
+            user: { id: user.id, email: user.email, name: user.name, subscriptionTier: user.subscriptionTier },
             token
         });
     } catch (err) {
@@ -156,7 +156,7 @@ router.post('/login', async (req: Request, res: Response) => {
         }
 
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
-        return res.json({ user: { id: user.id, email: user.email, name: user.name }, token });
+        return res.json({ user: { id: user.id, email: user.email, name: user.name, subscriptionTier: user.subscriptionTier }, token });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ error: 'Sunucu hatası' });

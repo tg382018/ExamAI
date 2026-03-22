@@ -10,14 +10,15 @@ interface GenerateExamJob {
     plan: DraftPlan;
     fileBase64?: string;
     fileMime?: string;
+    language?: string;
 }
 
 export function startWorker() {
     const worker = new Worker<GenerateExamJob>(
         'exam-generation',
         async (job: Job<GenerateExamJob>) => {
-            const { examId, prompt, plan, fileBase64, fileMime } = job.data;
-            console.log(`[Worker] Starting exam generation: ${examId}`);
+            const { examId, prompt, plan, fileBase64, fileMime, language } = job.data;
+            console.log(`[Worker] Starting exam generation: ${examId} (Lang: ${language || 'tr'})`);
 
             try {
                 // 1. Mark as GENERATING
@@ -27,7 +28,7 @@ export function startWorker() {
                 });
 
                 // 2. Generate via LLM (multi-step)
-                const { questions: rawQuestions, summary } = await generateFullExam(prompt, plan, fileBase64, fileMime);
+                const { questions: rawQuestions, summary } = await generateFullExam(prompt, plan, fileBase64, fileMime, language);
 
                 // Enforce requested count (slice if LLM generated more)
                 const requestedCount = plan.questionCount || 10;

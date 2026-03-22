@@ -2,6 +2,7 @@ enum ExamStatus { queued, generating, ready, failed }
 
 class Exam {
   final String id;
+  final String? autoPilotConfigId;
   final String title;
   final String prompt;
   final ExamStatus status;
@@ -15,6 +16,7 @@ class Exam {
 
   Exam({
     required this.id,
+    this.autoPilotConfigId,
     required this.title,
     required this.prompt,
     required this.status,
@@ -30,6 +32,7 @@ class Exam {
   factory Exam.fromJson(Map<String, dynamic> json) {
     return Exam(
       id: json['id'],
+      autoPilotConfigId: json['autoPilotConfigId'],
       title: json['title'],
       prompt: json['prompt'] ?? '',
       status: ExamStatus.values.firstWhere(
@@ -44,6 +47,84 @@ class Exam {
       lastScore: json['lastScore']?.toDouble(),
       isAuto: json['isAuto'] ?? false,
     );
+  }
+}
+
+class AutoPilotConfig {
+  final String id;
+  final String? title;
+  final bool isActive;
+  final String frequency;
+  final String time;
+  final int? dayOfWeek;
+  final String? topic;
+  final String? subtopic;
+  final String? level;
+  final int questionCount;
+  final String type;
+  final String? prompt;
+  final bool isPromptTab;
+  final String language;
+  final DateTime updatedAt;
+
+  AutoPilotConfig({
+    required this.id,
+    this.title,
+    required this.isActive,
+    required this.frequency,
+    required this.time,
+    this.dayOfWeek,
+    this.topic,
+    this.subtopic,
+    this.level,
+    required this.questionCount,
+    required this.type,
+    this.prompt,
+    required this.isPromptTab,
+    required this.language,
+    required this.updatedAt,
+  });
+
+  factory AutoPilotConfig.fromJson(Map<String, dynamic> json) {
+    return AutoPilotConfig(
+      id: json['id'],
+      title: json['title'],
+      isActive: json['isActive'] ?? false,
+      frequency: json['frequency'] ?? 'daily',
+      time: json['time'] ?? '09:00',
+      dayOfWeek: json['dayOfWeek'],
+      topic: json['topic'],
+      subtopic: json['subtopic'],
+      level: json['level'],
+      questionCount: json['questionCount'] ?? 10,
+      type: json['type'] ?? 'mixed',
+      prompt: json['prompt'],
+      isPromptTab: json['isPromptTab'] ?? false,
+      language: json['language'] ?? 'tr',
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'isActive': isActive,
+      'frequency': frequency,
+      'time': time,
+      'dayOfWeek': dayOfWeek,
+      'topic': topic,
+      'subtopic': subtopic,
+      'level': level,
+      'questionCount': questionCount,
+      'type': type,
+      'prompt': prompt,
+      'isPromptTab': isPromptTab,
+      'language': language,
+      'updatedAt': updatedAt.toIso8601String(),
+    };
   }
 }
 
