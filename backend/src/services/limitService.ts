@@ -15,9 +15,14 @@ export class LimitService {
   static async getUserLimits(userId: string) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { subscriptionTier: true }
+      select: { subscriptionTier: true, email: true }
     });
     
+    // Developer bypass
+    if (user?.email === 'tgulck@gmail.com') {
+      return SUBSCRIPTION_LIMITS.PRO;
+    }
+
     const tier = (user?.subscriptionTier || 'FREE') as keyof typeof SUBSCRIPTION_LIMITS;
     return SUBSCRIPTION_LIMITS[tier];
   }
