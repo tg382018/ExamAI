@@ -159,4 +159,13 @@ class ApiService {
   Future<void> deleteAutoPilotConfig(String id) async {
     await _dio.delete('/auto-pilot/$id');
   }
+
+  Future<Response> post(String path, {dynamic data}) async {
+    return await _dio.post(path, data: data);
+  }
+
+  Future<Map<String, dynamic>> getCurrentUser() async {
+    final res = await _dio.get('/auth/me');
+    return res.data;
+  }
 }

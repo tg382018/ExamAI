@@ -1,5 +1,4 @@
 import prisma from '../config/prisma';
-import { startOfDay, endOfDay } from 'date-fns';
 
 export const SUBSCRIPTION_LIMITS = {
   FREE: {
@@ -26,8 +25,10 @@ export class LimitService {
   static async checkExamLimit(userId: string): Promise<{ allowed: boolean; remaining: number }> {
     const limits = await this.getUserLimits(userId);
     
-    const today = startOfDay(new Date());
-    const tonight = endOfDay(new Date());
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tonight = new Date();
+    tonight.setHours(23, 59, 59, 999);
 
     const count = await prisma.exam.count({
       where: {
@@ -48,7 +49,7 @@ export class LimitService {
   static async checkAutoPilotLimit(userId: string): Promise<{ allowed: boolean; count: number }> {
     const limits = await this.getUserLimits(userId);
     
-    // We only count active configs for the limit
+    // We count active configs
     const count = await prisma.autoPilotConfig.count({
       where: {
         userId,

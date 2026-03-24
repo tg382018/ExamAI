@@ -11,6 +11,7 @@ import { startWorker } from './workers/examWorker';
 import { startAutoPilotWorker } from './workers/autoPilotWorker';
 import { startNotificationWorker } from './workers/notificationWorker';
 import autoPilotRoutes from './routes/autoPilot';
+import subscriptionRoutes from './routes/subscription';
 
 initFirebase();
 startWorker();

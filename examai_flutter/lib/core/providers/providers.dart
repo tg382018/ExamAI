@@ -4,6 +4,7 @@ import '../models/models.dart';
 import '../services/api_service.dart';
 import '../services/preferences_service.dart';
 import '../services/notification_service.dart';
+import '../services/iap_service.dart';
 import 'package:dio/dio.dart';
 
 class AuthState {
@@ -134,14 +135,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  void logout() {
-    state = AuthState();
-  }
-
   void clearError() {
     state = state.copyWith(error: null);
   }
+
+  Future<void> refreshUser() async {
+    try {
+      final data = await _api.getCurrentUser();
+      if (data['user'] != null) {
+        state = state.copyWith(user: User.fromJson(data['user']));
+      }
+    } catch (e) {
+      debugPrint('Error refreshing user: $e');
+    }
+  }
 }
+
+final iapServiceProvider = Provider<IAPService>((ref) {
+  final service = IAPService(ref);
+  service.init();
+  return service;
+});
 
 final examsProvider = StateNotifierProvider<ExamsNotifier, List<Exam>>((ref) {
   return ExamsNotifier(ref.read(apiServiceProvider));

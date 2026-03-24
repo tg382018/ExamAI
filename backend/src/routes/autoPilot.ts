@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import prisma from '../config/prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { updateAutoPilotSchedule } from '../services/scheduler';
+import { LimitService } from '../services/limitService';
 
 const router = Router();
 router.use(authMiddleware);
@@ -24,6 +25,19 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 router.post('/', async (req: AuthRequest, res: Response) => {
     try {
         const { id, isActive, frequency, time, dayOfWeek, topic, subtopic, level, questionCount, type, prompt, isPromptTab, title, language } = req.body;
+
+        // Check Auto Pilot Limits
+        if (isActive) {
+            const { allowed, count } = await LimitService.checkAutoPilotLimit(req.userId!);
+            if (!allowed) {
+                return res.status(403).json({ 
+                    error: count === 0 
+                        ? 'Otomatik sınav özelliği için Üyelik planına geçmeniz gerekmektedir. ✨' 
+                        : 'Maksimum 20 aktif otomatik sınav talimatı limitine ulaştınız. ✨',
+                    limitReached: true 
+                });
+            }
+        }
 
         let config;
         if (id) {

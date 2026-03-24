@@ -5,6 +5,7 @@ import prisma from '../config/prisma';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { generateDraftPlan } from '../services/llm';
 import { redisConnectionOptions } from '../config/redis';
+import { LimitService } from '../services/limitService';
 
 const router = Router();
 router.use(authMiddleware);
@@ -61,6 +62,15 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     try {
         const { prompt, title, questionCount, durationMin, difficulty, outline, needsAscii, allowedTypes, fileBase64, fileMime, isAuto } = req.body;
         if (!prompt || !title) return res.status(400).json({ error: 'prompt ve title zorunlu' });
+
+        const { allowed, remaining } = await LimitService.checkExamLimit(req.userId!);
+        if (!allowed) {
+            return res.status(403).json({ 
+                error: 'Günlük sınav oluşturma limitine ulaştınız. Lütfen yarın tekrar deneyin veya planınızı yükseltin. ✨',
+                limitReached: true 
+            });
+        }
+
         const exam = await prisma.exam.create({
             data: {
                 userId: req.userId!,

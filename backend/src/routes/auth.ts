@@ -200,4 +200,36 @@ router.post('/change-password', authMiddleware, async (req: AuthRequest, res: Re
     }
 });
 
+// GET /auth/me
+router.get('/me', authMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.userId;
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, email: true, name: true, subscriptionTier: true }
+        });
+        if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı' });
+        return res.json({ user });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Sunucu hatası' });
+    }
+});
+
+// POST /auth/simulate-pro
+router.post('/simulate-pro', authMiddleware, async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.userId;
+        const user = await prisma.user.update({
+            where: { id: userId },
+            data: { subscriptionTier: 'PRO' },
+            select: { id: true, email: true, name: true, subscriptionTier: true }
+        });
+        return res.json({ message: 'Tebrikler! PRO üyeliğiniz aktif edildi.', user });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Sunucu hatası' });
+    }
+});
+
 export default router;

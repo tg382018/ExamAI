@@ -11,6 +11,7 @@ import '../../features/exam_detail/exam_detail_screen.dart';
 import '../../features/dashboard/dashboard_screen.dart';
 import '../../features/score/score_screen.dart';
 import '../../features/settings/settings_screen.dart';
+import '../../features/settings/subscription_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final onboardingSeenAsync = ref.watch(onboardingSeenProvider);
@@ -36,6 +37,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           final email = state.extra as String;
           return VerifyEmailScreen(email: email);
         },
+      ),
+      GoRoute(
+        path: '/subscription',
+        builder: (context, state) => const SubscriptionScreen(),
       ),
       GoRoute(
         path: '/settings',

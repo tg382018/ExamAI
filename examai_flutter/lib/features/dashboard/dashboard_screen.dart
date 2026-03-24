@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
+import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -134,10 +135,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         _autoSubtopics.clear();
         _autoAttachedFile = null;
       });
+    } on DioException catch (e) {
+      if (mounted) {
+        if (e.response?.statusCode == 403) {
+          final errorMsg = e.response?.data?['error'] ?? 'Limit uyarısı';
+          _showUpgradeDialog(errorMsg);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Hata: ${e.response?.data?['error'] ?? e.message}'),
+                backgroundColor: Colors.red),
+          );
+        }
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Beklenmedik bir hata: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -603,14 +617,70 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             fileMime: _draftFileMime,
             isAuto: isAuto);
       }
+    } on DioException catch (e) {
+      setState(() => _loading = false);
+      if (e.response?.statusCode == 403) {
+        final errorMsg = e.response?.data?['error'] ?? 'Limit uyarısı';
+        _showUpgradeDialog(errorMsg);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Hata: ${e.response?.data?['error'] ?? e.message}')),
+          );
+        }
+      }
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e')),
+          SnackBar(content: Text('Beklenmedik bir hata oluştu: $e')),
         );
       }
     }
+  }
+
+  void _showUpgradeDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            const Icon(Icons.stars_rounded, color: Color(0xFF10B981)),
+            const SizedBox(width: 12),
+            Text('Limit Doldu',
+                style: GoogleFonts.outfit(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          message,
+          style: GoogleFonts.outfit(color: const Color(0xFF94A3B8)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Daha Sonra',
+                style: GoogleFonts.outfit(color: Colors.white60)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.push('/subscription');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('Şimdi Yükselt',
+                style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -1304,6 +1374,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Widget _buildAutoPilotCard(AppLocalizations l10n) {
+    final user = ref.watch(authProvider).user;
+    final bool isPro = user?.subscriptionTier == 'PRO';
+
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1367,6 +1440,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ? _autoTime.format(context)
                       : l10n.dashboardFreqPassive,
                   isActive: _autoFreq == 'Daily',
+                  isPro: isPro,
                   onTap: () => setState(() => _autoFreq = 'Daily')),
               const SizedBox(height: 12),
               _ScheduleCard(
@@ -1375,6 +1449,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ? '${_getDayName(_autoDay ?? 1, l10n)}, ${_autoTime.format(context)}'
                       : l10n.dashboardFreqPassive,
                   isActive: _autoFreq == 'Weekly',
+                  isPro: isPro,
                   onTap: () => setState(() => _autoFreq = 'Weekly')),
               const SizedBox(height: 12),
               _ScheduleCard(
@@ -1383,6 +1458,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ? '${l10n.dashboardAutoDayMonthly(_autoDay ?? 1)}, ${_autoTime.format(context)}'
                       : l10n.dashboardFreqPassive,
                   isActive: _autoFreq == 'Monthly',
+                  isPro: isPro,
                   onTap: () => setState(() => _autoFreq = 'Monthly')),
             ],
           ),
@@ -2585,18 +2661,21 @@ class _ScheduleCard extends StatelessWidget {
   final String time;
   final bool isActive;
   final VoidCallback onTap;
+  final bool isPro;
 
-  const _ScheduleCard(
-      {required this.label,
-      required this.time,
-      this.isActive = false,
-      required this.onTap});
+  const _ScheduleCard({
+    required this.label,
+    required this.time,
+    this.isActive = false,
+    required this.onTap,
+    this.isPro = true,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
-      onTap: onTap,
+      onTap: isPro ? onTap : () => context.push('/subscription'),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
